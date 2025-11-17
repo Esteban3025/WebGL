@@ -1,25 +1,12 @@
 function main () {
   const canvas = document.getElementById('canvas');
-  const vertexShaderSource = document.querySelector('#vertex-shader-2d').textContent;
-  const fragmentShaderSource = document.querySelector('#fragment-shader-2d').textContent;
+  const vertexShaderSource = document.querySelector('#vertex-shader-3d').textContent;
+  const fragmentShaderSource = document.querySelector('#fragment-shader-3d').textContent;
   const gl = canvas.getContext('webgl');
 
   if (!gl) {
     throw new Error('No se pudo iniciar webgl');
   }
-
-  function radToDeg(r) {
-    return r * 180 / Math.PI;
-  }
-
-  function degToRad(d) {
-    return d * Math.PI / 180;
-  }
-
-  const translation = [40, 150, 0];
-  const rotation = [degToRad(40), degToRad(25), degToRad(325)];
-  const scale = [1, 1, 1];
-  const backgroundColor = {r: 5, g: 5, b: 5, a: 1};
   
 
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource); // EL TEXTO SOURCE DE LOS SHADERS
@@ -30,7 +17,8 @@ function main () {
   const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
   const colorLocation = gl.getAttribLocation(program, 'a_color');
 
-  const matrixLocation = gl.getUniformLocation(program, "u_matrix");
+  const matrixLocation = gl.getUniformLocation(program, 'u_matrix');
+  const fudgeLocation = gl.getUniformLocation(program, 'u_fudgeFactor');
   
   const positionBuffer = gl.createBuffer(); // CREA UN ESPACIO EN MEMORIA
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // BINDING EL ESPACIO DE MEMORIA A UN BUFFER DE LA GPU
@@ -40,17 +28,76 @@ function main () {
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
   setColors(gl);
 
+  function radToDeg(r) {
+    return r * 180 / Math.PI;
+  }
+
+  function degToRad(d) {
+    return d * Math.PI / 180;
+  }
+
+  function makeZToWMatrix(fudgeFactor) {
+    return [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, fudgeFactor,
+      0, 0, 0, 1,
+    ];
+  }
+
+  const translation = [40, 150, 0];
+  const rotation = [degToRad(40), degToRad(25), degToRad(325)];
+  const scale = [1, 1, 1];
+  const backgroundColor = {r: 5, g: 5, b: 5, a: 1};
+  let fudgeFactor = 1;
+
+  const left = 0;
+  const right = gl.canvas.clientWidth;
+  const bottom = gl.canvas.clientHeight;
+  const top = 0;
+  const near = 400;
+  const far = -400;
   drawScene();
 
+  webglLessonsUI.setupSlider("#fudgeFactor", {value: fudgeFactor, slide: updateFudgeFactor, max: 2, step: 0.001, precision: 3 });
   webglLessonsUI.setupSlider("#x", {value: translation[0], slide: updatePosition(0), max: gl.canvas.width });
   webglLessonsUI.setupSlider("#y", {value: translation[1], slide: updatePosition(1), max: gl.canvas.height});
-  webglLessonsUI.setupSlider("#z", {value: translation[2], slide: updatePosition(2), max: gl.canvas.height});
+  webglLessonsUI.setupSlider("#z", {value: translation[2], slide: updatePosition(2), min: -500, max: gl.canvas.height});
   webglLessonsUI.setupSlider("#angleX", {value: radToDeg(rotation[0]), slide: updateRotation(0), max: 360});
   webglLessonsUI.setupSlider("#angleY", {value: radToDeg(rotation[1]), slide: updateRotation(1), max: 360});
   webglLessonsUI.setupSlider("#angleZ", {value: radToDeg(rotation[2]), slide: updateRotation(2), max: 360});
   webglLessonsUI.setupSlider("#scaleX", {value: scale[0], slide: updateScale(0), min: -5, max: 5, step: 0.01, precision: 2});
   webglLessonsUI.setupSlider("#scaleY", {value: scale[1], slide: updateScale(1), min: -5, max: 5, step: 0.01, precision: 2});
   webglLessonsUI.setupSlider("#scaleZ", {value: scale[2], slide: updateScale(2), min: -5, max: 5, step: 0.01, precision: 2});
+
+  canvas.addEventListener("keydown", (keys) => {
+    const key = keys.key;
+    switch(key) {
+      case "d":
+      translation[0] += 10;
+      drawScene();
+      break
+      case "a":
+      translation[0] -= 10;
+      drawScene();
+      break
+      case "w":
+      translation[1] -= 10;
+      drawScene();
+      break
+      case "s":
+      translation[1] += 10;
+      drawScene();
+      break
+      default:
+        return;
+    }
+  });
+
+  function updateFudgeFactor(event, ui) {
+    fudgeFactor = ui.value;
+    drawScene();
+  }
 
   function updatePosition(index) {
     return function(event, ui) {
@@ -81,18 +128,19 @@ function main () {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     gl.clearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a); // COLOR DEL FONDO
-    gl.clear(gl.COLOR_BUFFER_BIT); // LIMPIAR EL COLOR DEL FONDO
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // LIMPIAR EL COLOR DEL FONDO
     
-
     gl.useProgram(program);
     gl.enableVertexAttribArray(positionAttributeLocation);
-    gl.enableVertexAttribArray(colorLocation);
-    
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-    gl.vertexAttribPointer(colorLocation, 3, gl.UNSIGNED_BYTE, true, 0, 0);
-    
 
-    let matrix = m4.projection(gl.canvas.clientWidth, gl.canvas.clientHeight, 400);
+    gl.enableVertexAttribArray(colorLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.vertexAttribPointer(colorLocation, 3, gl.UNSIGNED_BYTE, true, 0, 0);
+
+    let matrix = makeZToWMatrix(fudgeFactor);
+    matrix = m4.multiply(matrix, m4.projection(gl.canvas.clientWidth, gl.canvas.clientHeight, 400));
     matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
     matrix = m4.xRotate(matrix, rotation[0]);
     matrix = m4.yRotate(matrix, rotation[1]);
@@ -100,7 +148,9 @@ function main () {
     matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
 
     gl.uniformMatrix4fv(matrixLocation, false, matrix); // set the matrix
-
+    gl.uniform1f(fudgeLocation, fudgeFactor);
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
     gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);  
   }
 };
@@ -174,6 +224,18 @@ const m4 = {
     ]
   },
 
+  orthographic: function(left, right, bottom, top, near, far) {
+    return [
+      2 / (right - left), 0, 0, 0,
+      0, 2 / (top - bottom), 0, 0,
+      0, 0, 2 / (near - far), 0,
+
+      (left + right) / (left - right),
+      (bottom + top) / (bottom - top),
+      (near + far) / (near - far),
+      1,
+    ]
+  },
   
   translate: function(m, tx, ty, tz) {
     return m4.multiply(m, m4.translation(tx, ty, tz));
@@ -286,28 +348,28 @@ function setGeometry(gl) {
     gl.ARRAY_BUFFER,
     new Float32Array([
       // left column front
-            0,   0,  0,
-           30,   0,  0,
-            0, 150,  0,
-            0, 150,  0,
-           30,   0,  0,
-           30, 150,  0,
+          0,   0,  0,
+          0, 150,  0,
+          30,   0,  0,
+          0, 150,  0,
+          30, 150,  0,
+          30,   0,  0,
 
           // top rung front
-           30,   0,  0,
+          30,   0,  0,
+          30,  30,  0,
           100,   0,  0,
-           30,  30,  0,
-           30,  30,  0,
-          100,   0,  0,
+          30,  30,  0,
           100,  30,  0,
+          100,   0,  0,
 
           // middle rung front
-           30,  60,  0,
-           67,  60,  0,
-           30,  90,  0,
-           30,  90,  0,
-           67,  60,  0,
-           67,  90,  0,
+          30,  60,  0,
+          30,  90,  0,
+          67,  60,  0,
+          30,  90,  0,
+          67,  90,  0,
+          67,  60,  0,
 
           // left column back
             0,   0,  30,
@@ -359,27 +421,27 @@ function setGeometry(gl) {
 
           // between top rung and middle
           30,   30,   0,
+          30,   60,  30,
           30,   30,  30,
-          30,   60,  30,
           30,   30,   0,
-          30,   60,  30,
           30,   60,   0,
+          30,   60,  30,
 
           // top of middle rung
           30,   60,   0,
+          67,   60,  30,
           30,   60,  30,
-          67,   60,  30,
           30,   60,   0,
-          67,   60,  30,
           67,   60,   0,
+          67,   60,  30,
 
           // right of middle rung
           67,   60,   0,
+          67,   90,  30,
           67,   60,  30,
-          67,   90,  30,
           67,   60,   0,
-          67,   90,  30,
           67,   90,   0,
+          67,   90,  30,
 
           // bottom of middle rung.
           30,   90,   0,
@@ -391,11 +453,11 @@ function setGeometry(gl) {
 
           // right of bottom
           30,   90,   0,
+          30,  150,  30,
           30,   90,  30,
-          30,  150,  30,
           30,   90,   0,
-          30,  150,  30,
           30,  150,   0,
+          30,  150,  30,
 
           // bottom
           0,   150,   0,
@@ -419,7 +481,7 @@ function setColors(gl) {
   gl.bufferData(
       gl.ARRAY_BUFFER,
       new Uint8Array([
-          // left column front
+         // left column front
         200,  70, 120,
         200,  70, 120,
         200,  70, 120,
@@ -545,7 +607,9 @@ function setColors(gl) {
         160, 160, 220,
         160, 160, 220,
         160, 160, 220,
-        160, 160, 220]),
+        160, 160, 220
+
+      ]),
       gl.STATIC_DRAW);
 }
 

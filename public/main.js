@@ -84,61 +84,65 @@ function main () {
     // console.log(key);
     switch(key) {
       case "d":
-      translation[0] += 10;
-      drawScene();
-      break
+      case "arrowright":
+        translation[0] += 10;
+        drawScene();
+        break;
       case "a":
-      translation[0] -= 10;
-      drawScene();
-      break
+      case "arrowleft":
+        translation[0] -= 10;
+        drawScene();
+        break;
       case "w":
-      translation[1] += 10;
-      drawScene();
-      break
+      case "arrowup":
+        translation[1] += 10;
+        drawScene();
+        break;
       case "s":
-      translation[1] -= 10;
-      drawScene();
-      break
+      case "arrowdown":
+        translation[1] -= 10;
+        drawScene();
+        break;
       case "q":
-      angleInRadians = angleInDegrees * Math.PI / 180;
-      rotation[1] += angleInRadians;
-      drawScene();
-      break
+        angleInRadians = angleInDegrees * Math.PI / 180;
+        rotation[1] += angleInRadians;
+        drawScene();
+        break;
       case "e":
-      angleInRadians = angleInDegrees * Math.PI / 180;
-      rotation[1] -= angleInRadians;
-      drawScene();
-      break
+        angleInRadians = angleInDegrees * Math.PI / 180;
+        rotation[1] -= angleInRadians;
+        drawScene();
+        break;
       case "r":
-      rotation[0] -= angleInRadians;
-      drawScene();
-      break
+        rotation[0] -= angleInRadians;
+        drawScene();
+        break;
       case "f":
-      rotation[0] += angleInRadians;
-      drawScene();
-      break
+        rotation[0] += angleInRadians;
+        drawScene();
+        break;
       case "x":
-      rotation[2] -= angleInRadians;
-      drawScene();
-      break
+        rotation[2] -= angleInRadians;
+        drawScene();
+        break;
       case "c":
-      rotation[2] += angleInRadians;
-      drawScene();
-      break
+        rotation[2] += angleInRadians;
+        drawScene();
+        break;
       case "-":
-      fieldOfViewRadians += degToRad(field);
-      drawScene();
-      break
+        fieldOfViewRadians += degToRad(field);
+        drawScene();
+        break;
       case "+":
-      fieldOfViewRadians -= degToRad(field);
-      drawScene();
-      break
+        fieldOfViewRadians -= degToRad(field);
+        drawScene();
+        break;
       case ",":
         ui.style.display = 'block';   
-      break
+        break;
       case ".":
         ui.style.display = 'none';   
-      break
+        break;
       default:
         return;
     }

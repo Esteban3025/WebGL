@@ -1,5 +1,7 @@
 function main () {
   const canvas = document.getElementById('canvas');
+  const ui = document.getElementById('uiContainer');
+  ui.style.display = 'none';
   const vertexShaderSource = document.querySelector('#vertex-shader-3d').textContent;
   const fragmentShaderSource = document.querySelector('#fragment-shader-3d').textContent;
   const gl = canvas.getContext('webgl');
@@ -8,7 +10,6 @@ function main () {
     throw new Error('No se pudo iniciar webgl');
   }
   
-
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource); // EL TEXTO SOURCE DE LOS SHADERS
   const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
@@ -45,11 +46,12 @@ function main () {
     ];
   }
 
-  const translation = [40, 150, 0];
-  const rotation = [degToRad(40), degToRad(25), degToRad(325)];
+  const translation = [-150, 0, -360];
+  const rotation = [degToRad(190), degToRad(40), degToRad(320)];
   const scale = [1, 1, 1];
   const backgroundColor = {r: 5, g: 5, b: 5, a: 1};
   let fudgeFactor = 1;
+  var fieldOfViewRadians = degToRad(60);
 
   const left = 0;
   const right = gl.canvas.clientWidth;
@@ -59,7 +61,7 @@ function main () {
   const far = -400;
   drawScene();
 
-  webglLessonsUI.setupSlider("#fudgeFactor", {value: fudgeFactor, slide: updateFudgeFactor, max: 2, step: 0.001, precision: 3 });
+  webglLessonsUI.setupSlider("#fieldOfView", {value: radToDeg(fieldOfViewRadians), slide: updateFieldOfView, min: 1, max: 179});
   webglLessonsUI.setupSlider("#x", {value: translation[0], slide: updatePosition(0), max: gl.canvas.width });
   webglLessonsUI.setupSlider("#y", {value: translation[1], slide: updatePosition(1), max: gl.canvas.height});
   webglLessonsUI.setupSlider("#z", {value: translation[2], slide: updatePosition(2), min: -500, max: gl.canvas.height});
@@ -70,8 +72,16 @@ function main () {
   webglLessonsUI.setupSlider("#scaleY", {value: scale[1], slide: updateScale(1), min: -5, max: 5, step: 0.01, precision: 2});
   webglLessonsUI.setupSlider("#scaleZ", {value: scale[2], slide: updateScale(2), min: -5, max: 5, step: 0.01, precision: 2});
 
+  canvas.addEventListener("click", async () => {
+    await canvas.requestPointerLock();
+  });
+
   canvas.addEventListener("keydown", (keys) => {
-    const key = keys.key;
+    const key = keys.key.toLowerCase();
+    const angleInDegrees = 10;
+    let angleInRadians = angleInDegrees * Math.PI / 180;
+    let field = 10;
+    // console.log(key);
     switch(key) {
       case "d":
       translation[0] += 10;
@@ -82,17 +92,62 @@ function main () {
       drawScene();
       break
       case "w":
-      translation[1] -= 10;
+      translation[1] += 10;
       drawScene();
       break
       case "s":
-      translation[1] += 10;
+      translation[1] -= 10;
       drawScene();
+      break
+      case "q":
+      angleInRadians = angleInDegrees * Math.PI / 180;
+      rotation[1] += angleInRadians;
+      drawScene();
+      break
+      case "e":
+      angleInRadians = angleInDegrees * Math.PI / 180;
+      rotation[1] -= angleInRadians;
+      drawScene();
+      break
+      case "r":
+      rotation[0] -= angleInRadians;
+      drawScene();
+      break
+      case "f":
+      rotation[0] += angleInRadians;
+      drawScene();
+      break
+      case "x":
+      rotation[2] -= angleInRadians;
+      drawScene();
+      break
+      case "c":
+      rotation[2] += angleInRadians;
+      drawScene();
+      break
+      case "-":
+      fieldOfViewRadians += degToRad(field);
+      drawScene();
+      break
+      case "+":
+      fieldOfViewRadians -= degToRad(field);
+      drawScene();
+      break
+      case ",":
+        ui.style.display = 'block';   
+      break
+      case ".":
+        ui.style.display = 'none';   
       break
       default:
         return;
     }
   });
+
+  function updateFieldOfView(event, ui) {
+    fieldOfViewRadians = degToRad(ui.value);
+    drawScene();
+  }
 
   function updateFudgeFactor(event, ui) {
     fudgeFactor = ui.value;
@@ -139,8 +194,10 @@ function main () {
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.vertexAttribPointer(colorLocation, 3, gl.UNSIGNED_BYTE, true, 0, 0);
 
-    let matrix = makeZToWMatrix(fudgeFactor);
-    matrix = m4.multiply(matrix, m4.projection(gl.canvas.clientWidth, gl.canvas.clientHeight, 400));
+    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    const zNear = 1;
+    const zFar = 2000;
+    let matrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
     matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
     matrix = m4.xRotate(matrix, rotation[0]);
     matrix = m4.yRotate(matrix, rotation[1]);
@@ -156,6 +213,18 @@ function main () {
 };
 
 const m4 = {
+  perspective: function(fieldOfViewInRadians, aspect, near, far) {
+    var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+    var rangeInv = 1.0 / (near - far);
+ 
+    return [
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (near + far) * rangeInv, -1,
+      0, 0, near * far * rangeInv * 2, 0
+    ];
+  },
+
   translation: function(tx, ty, tz) {
     return [
       1,  0,  0,  0,

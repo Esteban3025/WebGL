@@ -25,17 +25,16 @@ canvas:focus {
 
 <script id="vertex-shader-3d" type="x-shader/x-vertex">
   attribute vec4 a_position;
-  attribute vec4 a_color;
+  attribute vec2 a_texcoord;
 
   uniform mat4 u_matrix;
 
-  varying vec4 v_color;
+  varying vec2 v_texcoord;
 
   void main() {
-    vec4 position = u_matrix * a_position;
+    gl_Position = u_matrix * a_position;
 
-    gl_Position = position;
-    v_color = a_color;
+    v_texcoord = a_texcoord;
   }
 
 </script>
@@ -43,10 +42,11 @@ canvas:focus {
 <script id="fragment-shader-3d" type="x-shader/x-fragment">
   precision mediump float;
 
-  varying vec4 v_color;
+  varying vec2 v_texcoord;
+  uniform sampler2D u_texture;
 
   void main() {
-    gl_FragColor = v_color;
+    gl_FragColor = texture2D(u_texture, v_texcoord);
   }
 </script>
 <script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>

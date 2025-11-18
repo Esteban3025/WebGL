@@ -13,22 +13,13 @@ canvas:focus {
 }
 #uiContainer {
   position: absolute;
-  inset: 0px 0px 0px 78rem;
+  inset: 0px 0px 0px 0px;
 }
 </style>
 <canvas id="canvas" tabindex="0"></canvas>
 <div id="uiContainer">
   <div id="ui">
-    <div id="fieldOfView"></div>
-    <div id="x"></div>
-    <div id="y"></div>
-    <div id="z"></div>
-    <div id="angleX"></div>
-    <div id="angleY"></div>
-    <div id="angleZ"></div>
-    <div id="scaleX"></div>
-    <div id="scaleY"></div>
-    <div id="scaleZ"></div>
+    <div id="cameraAngle"></div>
   </div>
 </div>
 
@@ -37,13 +28,11 @@ canvas:focus {
   attribute vec4 a_color;
 
   uniform mat4 u_matrix;
-  uniform float u_fudgeFactor;
 
   varying vec4 v_color;
 
   void main() {
     vec4 position = u_matrix * a_position;
-    float zToDivideBy = 1.0 + position.z * u_fudgeFactor;
 
     gl_Position = position;
     v_color = a_color;

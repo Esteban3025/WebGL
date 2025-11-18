@@ -1,7 +1,6 @@
 function main () {
   const canvas = document.getElementById('canvas');
   const ui = document.getElementById('uiContainer');
-  ui.style.display = 'block';
   const vertexShaderSource = document.querySelector('#vertex-shader-3d').textContent;
   const fragmentShaderSource = document.querySelector('#fragment-shader-3d').textContent;
   const gl = canvas.getContext('webgl');
@@ -39,7 +38,12 @@ function main () {
   const backgroundColor = {r: 0, g: 0, b: 0.3, a: 1};
   let fieldOfViewRadians = degToRad(60);
   let cameraAngleRadians = degToRad(0);
-  drawScene();
+  const translation = [0, 0, -360];
+  let rotation = [degToRad(190), degToRad(40), degToRad(320)];
+  const scale = [1, 1, 1];
+  let rotationSpeed = 1.2;
+  let then = 0;
+  requestAnimationFrame(drawScene);
 
   webglLessonsUI.setupSlider("#cameraAngle", {value: radToDeg(cameraAngleRadians), slide: updateCameraAngle, min: -360, max: 360});
   function updateCameraAngle(event, ui) {
@@ -51,79 +55,11 @@ function main () {
     await canvas.requestPointerLock();
   });
 
-  canvas.addEventListener("keydown", (keys) => {
-    const key = keys.key.toLowerCase();
-    const angleInDegrees = 10;
-    let angleInRadians = angleInDegrees * Math.PI / 180;
-    let field = 10;
-    console.log(key);
-    switch(key) {
-      case "d":
-      case "arrowright":
-        translation[0] += 10;
-        drawScene();
-        break;
-      case "a":
-      case "arrowleft":
-        translation[0] -= 10;
-        drawScene();
-        break;
-      case "w":
-      case "arrowup":
-        translation[1] += 10;
-        drawScene();
-        break;
-      case "s":
-      case "arrowdown":
-        translation[1] -= 10;
-        drawScene();
-        break;
-      case "q":
-        angleInRadians = angleInDegrees * Math.PI / 180;
-        rotation[1] += angleInRadians;
-        drawScene();
-        break;
-      case "e":
-        angleInRadians = angleInDegrees * Math.PI / 180;
-        rotation[1] -= angleInRadians;
-        drawScene();
-        break;
-      case "r":
-        rotation[0] -= angleInRadians;
-        drawScene();
-        break;
-      case "f":
-        rotation[0] += angleInRadians;
-        drawScene();
-        break;
-      case "x":
-        rotation[2] -= angleInRadians;
-        drawScene();
-        break;
-      case "c":
-        rotation[2] += angleInRadians;
-        drawScene();
-        break;
-      case "-":
-        fieldOfViewRadians += degToRad(field);
-        drawScene();
-        break;
-      case "+":
-        fieldOfViewRadians -= degToRad(field);
-        drawScene();
-        break;
-      case "1":
-        ui.style.display = 'block';   
-        break;
-      case "2":
-        ui.style.display = 'none';   
-        break;
-      default:
-        return;
-    }
-  });
+  function drawScene(now) {
+    now *= 0.001;
+    let deltaTime = now - then;
 
-  function drawScene() {
+    let deltatime = now - then;
     webglUtils.resizeCanvasToDisplaySize(gl.canvas); 
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -141,41 +77,24 @@ function main () {
     gl.vertexAttribPointer(colorLocation, 3, gl.UNSIGNED_BYTE, true, 0, 0);
 
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    const zNear = 1;
-    const zFar = 2000;
     const numFs = 5;
     const radius = 200;
-    const fPosition = [radius, 0, 0];
-    const up = [0, 1, 0];
-    const projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
-    let cameraMatrix = m4.yRotation(cameraAngleRadians);
-    cameraMatrix = m4.translate(cameraMatrix, 50, 50, radius * 1.5);
-
-    const cameraPosition = [
-      cameraMatrix[12],
-      cameraMatrix[13],
-      cameraMatrix[14],
-    ];
-
-    cameraMatrix = m4.lookAt(cameraPosition, fPosition, up);
-    let viewMatrix = m4.inverse(cameraMatrix);
-
-    let viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+    rotation[1] += rotationSpeed * deltatime; 
+    let matrix = m4.perspective(fieldOfViewRadians, aspect, 1, 2000);
+    matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
+    matrix = m4.xRotate(matrix, rotation[0]);
+    matrix = m4.yRotate(matrix, rotation[1]);
+    matrix = m4.zRotate(matrix, rotation[2]);
+    matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
     
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
 
-    for (let i = 0; i < numFs; ++i) {
-      const angle = i * Math.PI * 2 / numFs;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-
-      let matrix = m4.translate(viewProjectionMatrix, x, 0, y);
-
-      gl.uniformMatrix4fv(matrixLocation, false, matrix); // set the matrix
-      gl.drawArrays(gl.TRIANGLES, 0, 16 * 6); 
-    }  
+    gl.uniformMatrix4fv(matrixLocation, false, matrix); // set the matrix
+    gl.drawArrays(gl.TRIANGLES, 0, 16 * 6); 
+    then = now;
+    requestAnimationFrame(drawScene);  
   }
 };
 

@@ -1,125 +1,250 @@
-function main () {
-  const canvas = document.getElementById('canvas');
-  const ui = document.getElementById('uiContainer');
-  const vertexShaderSource = document.querySelector('#vertex-shader-3d').textContent;
-  const fragmentShaderSource = document.querySelector('#fragment-shader-3d').textContent;
-  const gl = canvas.getContext('webgl');
-
-  if (!gl) {
-    throw new Error('No se pudo iniciar webgl');
-  }
+class Box {
+  canvas = document.getElementById('canvas');
+  gl = canvas.getContext('webgl');
+  webglProgram = createWebGLProgramFromIds(this.gl, "vertex-shader-3d", "fragment-shader-3d");
+  positionLocation;
+  colorLocation;
   
-  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource); // EL TEXTO SOURCE DE LOS SHADERS
-  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  constructor() {
+    const gl = this.gl;
 
-  const program = createProgram(gl, vertexShader, fragmentShader);
-
-  const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-  const texcoordLocation = gl.getAttribLocation(program, 'a_texcoord');
-
-  const textureLocation = gl.getUniformLocation(program, 'u_texture');
-  const matrixLocation = gl.getUniformLocation(program, 'u_matrix');
-  
-  const positionBuffer = gl.createBuffer(); // CREA UN ESPACIO EN MEMORIA
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // BINDING EL ESPACIO DE MEMORIA A UN BUFFER DE LA GPU
-  setGeometry(gl); // BUffer data - datos a enviar al buffer.
-
-  const texcoordBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-  setTexcoords(gl);
-
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-    new Uint8Array([0, 0, 255, 255]));
-  
-  let image = new Image();
-  image.src = "./textures/comida.jpg";
-  image.addEventListener('load', () => {
-  // Now that the image has loaded make copy it to the texture.
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
-    gl.generateMipmap(gl.TEXTURE_2D);
-  });
-
-  function radToDeg(r) {
-    return r * 180 / Math.PI;
-  }
-
-  function degToRad(d) {
-    return d * Math.PI / 180;
-  }
-
-  const backgroundColor = {r: 0, g: 0, b: 0.3, a: 1};
-  let fieldOfViewRadians = degToRad(60);
-  let cameraAngleRadians = degToRad(0);
-  let modelXRotationRadians = degToRad(0);
-  let modelYRotationRadians = degToRad(0);
-  const translation = [0, 0, -360];
-  let rotation = [degToRad(190), degToRad(40), degToRad(320)];
-  const scale = [1, 1, 1];
-  let rotationSpeed = 1.2;
-  let then = 0;
-  requestAnimationFrame(drawScene);
-
-  canvas.addEventListener("click", async () => {
-    await canvas.requestPointerLock();
-  });
-
-  function drawScene(now) {
-    now *= 0.001;
-    let deltaTime = now - then;
-
-    webglUtils.resizeCanvasToDisplaySize(gl.canvas); 
-
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    gl.clearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a); // COLOR DEL FONDO
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // LIMPIAR EL COLOR DEL FONDO
-
-    modelYRotationRadians += -0.7 * deltaTime;
-    modelXRotationRadians += -0.4 * deltaTime;
-    
-    gl.useProgram(program);
-    gl.enableVertexAttribArray(positionAttributeLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-
-    gl.enableVertexAttribArray(texcoordLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-    gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
-    
-    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-
-    const projectionMatrix =
-        m4.perspective(fieldOfViewRadians, aspect, 1, 2000);
-
-    const cameraPosition = [0, 0, 2];
-    const up = [0, 1, 0];
-    const target = [0, 0, 0];
-
-    // Compute the camera's matrix using look at.
-    const cameraMatrix = m4.lookAt(cameraPosition, target, up);
-
-    // Make a view matrix from the camera matrix.
-    const viewMatrix = m4.inverse(cameraMatrix);
-
-    const viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
-
-    let matrix = m4.xRotate(viewProjectionMatrix, modelXRotationRadians);
-    matrix = m4.yRotate(matrix, modelYRotationRadians);
+    gl.useProgram(this.webglProgram);
+    this.positionLocation = gl.getAttribLocation(this.webglProgram, 'a_position');
+    this.matrixLocation = gl.getUniformLocation(this.webglProgram, "u_matrix");
+    this.colorLocation = gl.getUniformLocation(this.webglProgram, "u_color");
 
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-
-    gl.uniform1i(textureLocation, 0);
-    gl.uniformMatrix4fv(matrixLocation, false, matrix); // set the matrix
-    gl.drawArrays(gl.TRIANGLES, 0, 16 * 6); 
-    then = now;
-    requestAnimationFrame(drawScene);  
   }
+
+  draw(settting) {
+    const data = new Float32Array(settting.positions);
+
+    const gl = this.gl;
+
+    if (!gl) {
+      throw new Error('No se pudo iniciar webgl');
+    }
+
+    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+    gl.enableVertexAttribArray(this.positionLocation);
+    gl.vertexAttribPointer(this.positionLocation, 3, gl.FLOAT, false, 0, 0);
+
+    gl.uniform4fv(this.colorLocation, settting.color);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+  }
+}
+
+function createShader(gl, source, type) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+  if (success) {
+    return shader;
+  }
+
+  console.log(gl.getShaderInfoLog(shader));
+  gl.deleteShader(shader);
+}
+
+function linkProgram(gl, vertexShader, fragmentShader) {
+  console.log("vertex shader:", vertexShader, "fragment shader:", fragmentShader);
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+  if (success) {
+    return program;
+  }
+
+  console.log(gl.getProgramInfoLog(program));
+  gl.deleteProgram(program);
+}
+
+function createWebGLProgram(gl, vertexSourceId, fragmentSourceId) {
+  console.log("fragmentSourceId:", fragmentSourceId);
+  const vertexShader = createShader(gl, vertexSourceId, gl.VERTEX_SHADER);
+  const fragmentShader = createShader(gl, fragmentSourceId, gl.FRAGMENT_SHADER);
+  return linkProgram(
+    gl,
+    vertexShader,
+    fragmentShader
+  );
+}
+
+function createWebGLProgramFromIds(gl, vertexSourceId, fragmentSourceId) {
+  const vertexSourceEl = document.getElementById(vertexSourceId).textContent;
+  const fragmentSourceEl = document.getElementById(fragmentSourceId).textContent;
+  console.log("fragment text:", fragmentSourceEl);
+  return createWebGLProgram(
+    gl,
+    vertexSourceEl,
+    fragmentSourceEl,
+  );
+}
+
+function main () {
+
+  
+  
+  const box = new Box();
+  box.draw({
+    positions: [
+      -0.5, -0.5,  -0.5,
+    -0.5,  0.5,  -0.5,
+     0.5, -0.5,  -0.5,
+    -0.5,  0.5,  -0.5,
+     0.5,  0.5,  -0.5,
+     0.5, -0.5,  -0.5,
+
+    -0.5, -0.5,   0.5,
+     0.5, -0.5,   0.5,
+    -0.5,  0.5,   0.5,
+    -0.5,  0.5,   0.5,
+     0.5, -0.5,   0.5,
+     0.5,  0.5,   0.5,
+
+    -0.5,   0.5, -0.5,
+    -0.5,   0.5,  0.5,
+     0.5,   0.5, -0.5,
+    -0.5,   0.5,  0.5,
+     0.5,   0.5,  0.5,
+     0.5,   0.5, -0.5,
+
+    -0.5,  -0.5, -0.5,
+     0.5,  -0.5, -0.5,
+    -0.5,  -0.5,  0.5,
+    -0.5,  -0.5,  0.5,
+     0.5,  -0.5, -0.5,
+     0.5,  -0.5,  0.5,
+
+    -0.5,  -0.5, -0.5,
+    -0.5,  -0.5,  0.5,
+    -0.5,   0.5, -0.5,
+    -0.5,  -0.5,  0.5,
+    -0.5,   0.5,  0.5,
+    -0.5,   0.5, -0.5,
+
+     0.5,  -0.5, -0.5,
+     0.5,   0.5, -0.5,
+     0.5,  -0.5,  0.5,
+     0.5,  -0.5,  0.5,
+     0.5,   0.5, -0.5,
+     0.5,   0.5,  0.5,
+    ],
+    color: [5, 0, 0, 1],
+  });
+
+  const box2 = new Box();
+  box2.draw({
+    positions: [
+    -0.2, -0.2,  -0.2,
+    -0.2,  0.2,  -0.2,
+     0.2, -0.2,  -0.2,
+    -0.2,  0.2,  -0.2,
+     0.2,  0.2,  -0.2,
+     0.2, -0.2,  -0.2,
+
+    -0.2, -0.2,   0.2,
+     0.2, -0.2,   0.2,
+    -0.2,  0.2,   0.2,
+    -0.2,  0.2,   0.2,
+     0.2, -0.2,   0.2,
+     0.2,  0.2,   0.2,
+
+    -0.2,   0.2, -0.2,
+    -0.2,   0.2,  0.2,
+     0.2,   0.2, -0.2,
+    -0.2,   0.2,  0.2,
+     0.2,   0.2,  0.2,
+     0.2,   0.2, -0.2,
+
+    -0.2,  -0.2, -0.2,
+     0.2,  -0.2, -0.2,
+    -0.2,  -0.2,  0.2,
+    -0.2,  -0.2,  0.2,
+     0.2,  -0.2, -0.2,
+     0.2,  -0.2,  0.2,
+
+    -0.2,  -0.2, -0.2,
+    -0.2,  -0.2,  0.2,
+    -0.2,   0.2, -0.2,
+    -0.2,  -0.2,  0.2,
+    -0.2,   0.2,  0.2,
+    -0.2,   0.2, -0.2,
+
+     0.2,  -0.2, -0.2,
+     0.2,   0.2, -0.2,
+     0.2,  -0.2,  0.2,
+     0.2,  -0.2,  0.2,
+     0.2,   0.2, -0.2,
+     0.2,   0.2,  0.2,
+    ],
+    color: [0, 0, 0.5, 1],
+  });
+
+
+  // function drawScene(now) {
+  //   now *= 0.001;
+  //   let deltaTime = now - then;
+
+  //   webglUtils.resizeCanvasToDisplaySize(gl.canvas); 
+
+  //   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+  //   gl.clearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a); // COLOR DEL FONDO
+  //   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // LIMPIAR EL COLOR DEL FONDO
+
+  //   modelYRotationRadians += -0.7 * deltaTime;
+  //   modelXRotationRadians += -0.4 * deltaTime;
+    
+  //   gl.useProgram(program);
+  //   gl.enableVertexAttribArray(positionAttributeLocation);
+  //   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  //   gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+
+  //   gl.enableVertexAttribArray(texcoordLocation);
+  //   gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+  //   gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+    
+  //   const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+
+  //   const projectionMatrix =
+  //       m4.perspective(fieldOfViewRadians, aspect, 1, 2000);
+
+  //   const cameraPosition = [0, 0, 2];
+  //   const up = [0, 1, 0];
+  //   const target = [0, 0, 0];
+
+  //   // Compute the camera's matrix using look at.
+  //   const cameraMatrix = m4.lookAt(cameraPosition, target, up);
+
+  //   // Make a view matrix from the camera matrix.
+  //   const viewMatrix = m4.inverse(cameraMatrix);
+
+  //   const viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+
+  //   let matrix = m4.xRotate(viewProjectionMatrix, modelXRotationRadians);
+  //   matrix = m4.yRotate(matrix, modelYRotationRadians);
+
+    
+  //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+  //   gl.uniform1i(textureLocation, 0);
+  //   gl.uniformMatrix4fv(matrixLocation, false, matrix); // set the matrix
+  //   gl.drawArrays(gl.TRIANGLES, 0, 16 * 6); 
+  //   then = now;
+  //   requestAnimationFrame(drawScene);  
+  // }
 };
 
 function cross(a, b) {
@@ -413,85 +538,13 @@ const m4 = {
   },
 }
 
-function createShader(gl, type, source) {
-  var shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-  if (success) {
-    return shader;
-  }
 
-  console.log(gl.getShaderInfoLog(shader));
-  gl.deleteShader(shader);
-}
-
-function createProgram(gl, vertexShader, fragmentShader) {
-  var program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (success) {
-    return program;
-  }
-
-  console.log(gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
-}
 
 function randomInt(range) {
   return Math.floor(Math.random() * range);
 }
 
-function setGeometry(gl) {
-  var positions = new Float32Array(
-    [
-    -0.5, -0.5,  -0.5,
-    -0.5,  0.5,  -0.5,
-     0.5, -0.5,  -0.5,
-    -0.5,  0.5,  -0.5,
-     0.5,  0.5,  -0.5,
-     0.5, -0.5,  -0.5,
 
-    -0.5, -0.5,   0.5,
-     0.5, -0.5,   0.5,
-    -0.5,  0.5,   0.5,
-    -0.5,  0.5,   0.5,
-     0.5, -0.5,   0.5,
-     0.5,  0.5,   0.5,
-
-    -0.5,   0.5, -0.5,
-    -0.5,   0.5,  0.5,
-     0.5,   0.5, -0.5,
-    -0.5,   0.5,  0.5,
-     0.5,   0.5,  0.5,
-     0.5,   0.5, -0.5,
-
-    -0.5,  -0.5, -0.5,
-     0.5,  -0.5, -0.5,
-    -0.5,  -0.5,  0.5,
-    -0.5,  -0.5,  0.5,
-     0.5,  -0.5, -0.5,
-     0.5,  -0.5,  0.5,
-
-    -0.5,  -0.5, -0.5,
-    -0.5,  -0.5,  0.5,
-    -0.5,   0.5, -0.5,
-    -0.5,  -0.5,  0.5,
-    -0.5,   0.5,  0.5,
-    -0.5,   0.5, -0.5,
-
-     0.5,  -0.5, -0.5,
-     0.5,   0.5, -0.5,
-     0.5,  -0.5,  0.5,
-     0.5,  -0.5,  0.5,
-     0.5,   0.5, -0.5,
-     0.5,   0.5,  0.5,
-
-    ]);
-  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-}
 
 function setTexcoords(gl) {
   gl.bufferData(

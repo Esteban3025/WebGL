@@ -11,36 +11,74 @@ function main() {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
   const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
+  console.log(vertexShader);
+  console.log(fragmentShader);
+
   const program = createProgram(gl, vertexShader, fragmentShader);
 
   const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+
+  const colorLocation = gl.getUniformLocation(program, 'u_color');
+  const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+
   const positionBuffer = gl.createBuffer();
 
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
-  const positions = [
-    0, 0,
-    0, 0.5,
-    0.7, 0,
-  ];
+  const translation = [0, 0];
+  const width = 100;
+  const height = 30;
+  const color = [Math.random(), Math.random(), Math.random(), 1];
 
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+  drawScene();
 
-  webglUtils.resizeCanvasToDisplaySize(gl.canvas);
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  webglLessonsUI.setupSlider("#x", {slide: updatePosition(0), max: gl.canvas.width });
+  webglLessonsUI.setupSlider("#y", {slide: updatePosition(1), max: gl.canvas.height});
 
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  function updatePosition(index) {
+    return function(event, ui) {
+      translation[index] = ui.value;
+      drawScene();
+    };
+  }
 
-  gl.useProgram(program);
+  function drawScene() {
+    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-  gl.enableVertexAttribArray(positionAttributeLocation);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.useProgram(program);
+    gl.enableVertexAttribArray(positionAttributeLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    setRectangle(gl, translation[0], translation[1], width, height);
+    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
-  gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+    gl.uniform4fv(colorLocation, color);
 
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.drawArrays(gl.TRIANGLES, 0, 6); 
+  }
+  return;
+}
+
+function setRectangle(gl, x, y, width, height) {
+  var x1 = x;
+  var x2 = x + width;
+  var y1 = y;
+  var y2 = y + height;
+  gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([
+          x1, y1,
+          x2, y1,
+          x1, y2,
+          x1, y2,
+          x2, y1,
+          x2, y2,
+      ]),
+      gl.STATIC_DRAW);
 }
 
 

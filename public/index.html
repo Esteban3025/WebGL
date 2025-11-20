@@ -4,7 +4,7 @@
   overflow: hidden;
 }
 #canvas {
-  display: block;  /* prevents scrollbar */
+  display: block;  
   width: 100vw;
   height: 100vh;
 }
@@ -19,15 +19,24 @@ canvas:focus {
 <canvas id="canvas" tabindex="0"></canvas>
 <div id="uiContainer">
   <div id="ui">
-    <div id="cameraAngle"></div>
+    <div id="x"></div>
+    <div id="y"></div>
   </div>
 </div>
 
 <script id="vertex-shader" type="x-shader/x-vertex">
-  attribute vec4 a_position;
+  attribute vec2 a_position;
+
+  uniform vec2 u_resolution;
   
   void main() {
-    gl_Position = a_position;
+    vec2 zeroToOne = a_position / u_resolution;
+
+    vec2 zeroToTwo = zeroToOne * 2.0;
+
+    vec2 clipSpace = zeroToTwo - 1.0;
+
+    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
   }
 
 </script>
@@ -35,8 +44,10 @@ canvas:focus {
 <script id="fragment-shader" type="x-shader/x-fragment">
   precision mediump float;
 
+  uniform vec4 u_color;
+
   void main() {
-    gl_FragColor = vec4(1, 0, 0.5, 1);
+    gl_FragColor = u_color;
   }
 </script>
 <script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>

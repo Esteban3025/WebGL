@@ -20,7 +20,7 @@ function main() {
 
   const colorLocation = gl.getUniformLocation(program, 'u_color');
   const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
-
+  const translationLocation = gl.getUniformLocation(program, 'u_translation');
   const positionBuffer = gl.createBuffer();
 
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -29,6 +29,8 @@ function main() {
   const width = 100;
   const height = 30;
   const color = [Math.random(), Math.random(), Math.random(), 1];
+
+  setGeometry(gl);
 
   drawScene();
 
@@ -46,37 +48,51 @@ function main() {
     webglUtils.resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(1, 1, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.useProgram(program);
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    setRectangle(gl, translation[0], translation[1], width, height);
+    
+    gl.uniform2fv(translationLocation, translation);
     gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
     gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
     gl.uniform4fv(colorLocation, color);
 
-    gl.drawArrays(gl.TRIANGLES, 0, 6); 
+    gl.drawArrays(gl.TRIANGLES, 0, 18); 
   }
   return;
 }
 
-function setRectangle(gl, x, y, width, height) {
-  var x1 = x;
-  var x2 = x + width;
-  var y1 = y;
-  var y2 = y + height;
+function setGeometry(gl) {
   gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([
-          x1, y1,
-          x2, y1,
-          x1, y2,
-          x1, y2,
-          x2, y1,
-          x2, y2,
+          // left column
+          0, 0,
+          30, 0,
+          0, 150,
+          0, 150,
+          30, 0,
+          30, 150,
+ 
+          // top rung
+          30, 0,
+          100, 0,
+          30, 30,
+          30, 30,
+          100, 0,
+          100, 30,
+ 
+          // middle rung
+          30, 60,
+          67, 60,
+          30, 90,
+          30, 90,
+          67, 60,
+          67, 90,
       ]),
       gl.STATIC_DRAW);
 }

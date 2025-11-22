@@ -11,9 +11,6 @@ function main() {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
   const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
-  console.log(vertexShader);
-  console.log(fragmentShader);
-
   const program = createProgram(gl, vertexShader, fragmentShader);
 
   const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
@@ -40,11 +37,11 @@ function main() {
 
   let fieldOfViewRadians = degToRad(60);
   let cameraAngleRadians = degToRad(0);
+  let cameraSpeed = 1.2;
+  let animation = false;
 
-
-  drawScene();
+  requestAnimationFrame(drawScene);
   webglLessonsUI.setupSlider("#cameraAngle", {value: radToDeg(cameraAngleRadians), slide: updateCameraAngle, min: -360, max: 360});
-
 
   function updateCameraAngle(event, ui) {
     cameraAngleRadians = degToRad(ui.value);
@@ -68,6 +65,18 @@ function main() {
     gl.enableVertexAttribArray(colorLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.vertexAttribPointer(colorLocation, 3, gl.UNSIGNED_BYTE, true, 0, 0);
+
+    canvas.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      console.log(key);
+      if (key == ' ') {
+        animation = true;
+        return 
+      } else if (key == ' ' && animation == true) {
+        animation = false;
+      }
+      return
+    } )
 
     // matrix math
     let numFs = 5;
@@ -97,17 +106,22 @@ function main() {
 
     const viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
 
+    if (animation) {
+      cameraAngleRadians += cameraSpeed / 60.0;
+    }
+  
     for (let i = 0; i < numFs; ++i) {
       const angle = i * Math.PI * 2 / numFs;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
 
       let matrix = m4.translate(viewProjectionMatrix, x, 0, y);
-      console.log(matrix);
+    
       gl.uniformMatrix4fv(matrixLocation, false, matrix);
 
       gl.drawArrays(gl.TRIANGLES, 0, 16 * 6); 
-    }    
+    }
+    requestAnimationFrame(drawScene);    
   }
 }
 

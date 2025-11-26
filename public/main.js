@@ -8,13 +8,17 @@ function main() {
   const vertexShaderSource = document.querySelector("#vertex-shader").textContent;
   const fragmentShaderSource = document.querySelector("#fragment-shader").textContent;
 
+  const radios = document.querySelectorAll('input[name="move"]');
+
+  console.log(radios[0].value);
+
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
   const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
   const program = createProgram(gl, vertexShader, fragmentShader);
 
   const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-  const colorLocation = gl.getAttribLocation(program, 'a_color');
+  const texcoordLocation = gl.getAttribLocation(program, 'a_texcoord');
   
   const matrixLocation = gl.getUniformLocation(program, 'u_matrix');
 
@@ -22,10 +26,24 @@ function main() {
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   setGeometry(gl);
 
-  // Create color buffer 
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  setColors(gl);
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.enableVertexAttribArray(texcoordLocation);
+  gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+  setTexcoords(gl);
+
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
+  let image = new Image();
+  image.src = "./textures/f-texture.png";
+  image.addEventListener('load', function() {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
+    gl.generateMipmap(gl.TEXTURE_2D);
+  });
 
   function radToDeg(r) {
     return r * 180 / Math.PI;
@@ -37,8 +55,9 @@ function main() {
 
   let fieldOfViewRadians = degToRad(60);
   let cameraAngleRadians = degToRad(0);
+  let camerarotation = degToRad(0);
   let cameraSpeed = 1.2;
-  let animation = false;
+  let then = 0;
 
   requestAnimationFrame(drawScene);
   webglLessonsUI.setupSlider("#cameraAngle", {value: radToDeg(cameraAngleRadians), slide: updateCameraAngle, min: -360, max: 360});
@@ -48,9 +67,13 @@ function main() {
     drawScene();
   }
 
-  function drawScene() {
+  function drawScene(now) {
     webglUtils.resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    now *= 0.001;
+
+    const deltatime = now - then;
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -61,22 +84,6 @@ function main() {
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-
-    gl.enableVertexAttribArray(colorLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.vertexAttribPointer(colorLocation, 3, gl.UNSIGNED_BYTE, true, 0, 0);
-
-    canvas.addEventListener("keydown", (e) => {
-      const key = e.key.toLowerCase();
-      console.log(key);
-      if (key == ' ') {
-        animation = true;
-        return 
-      } else if (key == ' ' && animation == true) {
-        animation = false;
-      }
-      return
-    } )
 
     // matrix math
     let numFs = 5;
@@ -98,18 +105,16 @@ function main() {
       cameraMatrix[14],
     ];
 
-    let up = [0, 1, 0];
-
+    let up = [0, 1, 5];
+    
     cameraMatrix = m4.lookAt(cameraPosition, fposition, up);
 
     const viewMatrix = m4.inverse(cameraMatrix);
 
     const viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
 
-    if (animation) {
-      cameraAngleRadians += cameraSpeed / 60.0;
-    }
-  
+    cameraAngleRadians += cameraSpeed * deltatime;
+
     for (let i = 0; i < numFs; ++i) {
       const angle = i * Math.PI * 2 / numFs;
       const x = Math.cos(angle) * radius;
@@ -121,6 +126,7 @@ function main() {
 
       gl.drawArrays(gl.TRIANGLES, 0, 16 * 6); 
     }
+    then = now;
     requestAnimationFrame(drawScene);    
   }
 }
@@ -477,7 +483,7 @@ const m4 = {
       1, 0, 0, 0,
       0, c, s, 0,
       0, -s, c, 0,
-      0, 0, 0, 1,
+      0, 1, 0, 1,
     ];
   },
 
@@ -730,6 +736,140 @@ function setColors(gl) {
         160, 160, 220,
         160, 160, 220,
         160, 160, 220]),
+      gl.STATIC_DRAW);
+}
+
+function setTexcoords(gl) {
+  gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([
+        // left column front
+        0, 0,
+        0, 1,
+        1, 0,
+        0, 1,
+        1, 1,
+        1, 0,
+
+        // top rung front
+        0, 0,
+        0, 1,
+        1, 0,
+        0, 1,
+        1, 1,
+        1, 0,
+
+        // middle rung front
+        0, 0,
+        0, 1,
+        1, 0,
+        0, 1,
+        1, 1,
+        1, 0,
+
+        // left column back
+        0, 0,
+        1, 0,
+        0, 1,
+        0, 1,
+        1, 0,
+        1, 1,
+
+        // top rung back
+        0, 0,
+        1, 0,
+        0, 1,
+        0, 1,
+        1, 0,
+        1, 1,
+
+        // middle rung back
+        0, 0,
+        1, 0,
+        0, 1,
+        0, 1,
+        1, 0,
+        1, 1,
+
+        // top
+        0, 0,
+        1, 0,
+        1, 1,
+        0, 0,
+        1, 1,
+        0, 1,
+
+        // top rung right
+        0, 0,
+        1, 0,
+        1, 1,
+        0, 0,
+        1, 1,
+        0, 1,
+
+        // under top rung
+        0, 0,
+        0, 1,
+        1, 1,
+        0, 0,
+        1, 1,
+        1, 0,
+
+        // between top rung and middle
+        0, 0,
+        1, 1,
+        0, 1,
+        0, 0,
+        1, 0,
+        1, 1,
+
+        // top of middle rung
+        0, 0,
+        1, 1,
+        0, 1,
+        0, 0,
+        1, 0,
+        1, 1,
+
+        // right of middle rung
+        0, 0,
+        1, 1,
+        0, 1,
+        0, 0,
+        1, 0,
+        1, 1,
+
+        // bottom of middle rung.
+        0, 0,
+        0, 1,
+        1, 1,
+        0, 0,
+        1, 1,
+        1, 0,
+
+        // right of bottom
+        0, 0,
+        1, 1,
+        0, 1,
+        0, 0,
+        1, 0,
+        1, 1,
+
+        // bottom
+        0, 0,
+        0, 1,
+        1, 1,
+        0, 0,
+        1, 1,
+        1, 0,
+
+        // left side
+        0, 0,
+        0, 1,
+        1, 1,
+        0, 0,
+        1, 1,
+        1, 0]),
       gl.STATIC_DRAW);
 }
 

@@ -1,56 +1,23 @@
-<style>
-  body {
-  margin: 0;
-  overflow: hidden;
-}
-#canvas {
-  display: block;  
-  width: 100vw;
-  height: 100vh;
-}
-canvas:focus {
-  outline: none;
-}
-#uiContainer {
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-</style>
-<canvas id="canvas" tabindex="0"></canvas>
-<div id="uiContainer">
-  <div id="ui">
-    <div id="cameraAngle"></div>
-  </div>
-</div>
-
-<script id="vertex-shader" type="x-shader/x-vertex">
-  attribute vec4 a_position;
-  attribute vec2 a_texcoord;
-
-  uniform mat4 u_matrix;
-
-  varying vec2 v_texcoord;
-  
-  void main() {
-    gl_Position = u_matrix * a_position;
-
-    v_texcoord = a_texcoord;
-  }
-
-</script>
-
-<script id="fragment-shader" type="x-shader/x-fragment">
-  precision mediump float;
-
-  varying vec2 v_texcoord;
-
-  uniform sampler2D u_texture;
-
-  void main() {
-    gl_FragColor = texture2D(u_texture, v_texcoord);
-  }
-</script>
-<script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
-<script src="https://webglfundamentals.org/webgl/resources/webgl-lessons-ui.js"></script>
-<script type="module" src="main.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGl2 Test</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    
+    canvas {
+      display: block;  /* prevents scrollbar */
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+   <canvas id="c"></canvas>
+   <script type="module" src="main.js"></script>
+</body>
+</html>

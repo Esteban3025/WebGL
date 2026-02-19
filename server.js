@@ -1,14 +1,13 @@
-import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
+// Tengo que hacer el server para poder leer los shaders desde un txt con nodejs
+import express from 'express';
 
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, "public")));
+const PORT = 3000;
 
-const PORT = process.env.PORT || 3000;
+ app.use(express.static('public'))
 
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
+ app.use("/shaders", express.static('shaders'));
 
-app.listen(PORT, () => console.log(`Escuchando en: http://localhost:${PORT}/`));
+app.listen(PORT, () => {
+  console.log(`Servidor eschando en http://localhost:${PORT}`);
+})

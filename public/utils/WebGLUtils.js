@@ -59,27 +59,34 @@ export class WebGL2Utils {
     return Math.random() * (max - min) + min;
   }
 
-  processInput(gl, key, position) {
-    // console.log("Key Pressed: ", key);
-    let speed = 20;
-    switch (key) {
-      case "w":
-        position.y -= speed;
-        break
-      case "s":
-        position.y += speed;
-        break
-      case "d":
-        position.x += speed;
-        break
-      case "a":
-        position.x -= speed;
-        break
-      case "t":
-        position.x = 0;
-        position.y = 0;
-        break
-    }
+  processInput(gl, position) {
+    window.addEventListener('keydown', e => {
+      let keys = e.key.toLocaleLowerCase();
+      console.log("Key Pressed: ", keys);
+      inputsCases(keys, position);
+    })
   }
 
+}
+
+function inputsCases(keys, position) {
+  let speed = -Math.sin(100) * 8.0;
+  switch (keys) {
+      case "w":
+        position[1] -= speed;
+        break
+      case "s":
+        position[1] += speed;
+        break
+      case "d":
+        position[0] += speed;
+        break
+      case "a":
+        position[0] -= speed;
+        break
+      case "t":
+        position[0] = 0;
+        position[1] = 0;
+        break
+  }
 }

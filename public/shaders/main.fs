@@ -1,19 +1,11 @@
 #version 300 es
 
-#define PI 3.14159265359
-
 precision highp float;
 
-uniform vec3 u_color;
-uniform vec2 u_resolution;
-uniform vec2 u_mouse;
-uniform float u_time;
+in vec4 v_color;
 
-out vec4 FragColor;
-
+out vec4 outColor;
 
 void main() {
-  vec3 color = u_color;
-
-  FragColor = vec4(color, 1.0);
+  outColor = v_color;
 }

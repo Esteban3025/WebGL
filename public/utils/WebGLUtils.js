@@ -58,7 +58,7 @@ export class WebGL2Utils {
   processInput(gl, position, rotation, scale) {
     window.addEventListener('keydown', e => {
       let keys = e.key.toLocaleLowerCase();
-      console.log("Key Pressed: ", keys);
+      // console.log("Key Pressed: ", keys);
       this.inputsCases(keys, position, rotation, scale);
     })
   }
@@ -67,6 +67,7 @@ export class WebGL2Utils {
     let speed = -Math.sin(100) * scale.x * 2.0;
     let rotationSpeed = 5;
     let scaleAmount = 2;
+    // console.log("this is scale", scale)
     switch (keys) {
       case "w":
         // mover en y negativo
@@ -102,9 +103,7 @@ export class WebGL2Utils {
         break
       case "+":
         // escalar hacia arriba
-        scale.x += scaleAmount;
-        scale.y += scaleAmount;
-        scale.z =  scale.z + scaleAmount;
+        scale = scale.scalar(2);
         break
       case "-":
         // escalar hacia abajo

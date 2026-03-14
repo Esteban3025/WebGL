@@ -79,8 +79,15 @@ async function main() {
   let scale = new vec3(1);
 
 
-  const b = new vec2(12, -5);
-  console.log(b.normalize());
+  const a = new vec2(4, 6);
+  const b = new vec2(-3, 7).normalize();
+
+  console.log(a);
+  console.log(b);
+  
+  
+  // const a = new vec3(355, -5, 20);
+  
 
   utils.processInput(gl,translation, rotation, scale);
 

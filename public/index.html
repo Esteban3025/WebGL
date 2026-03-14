@@ -14,10 +14,25 @@
       width: 100vw;
       height: 100vh;
     }
+    #uiContainer{
+      position: absolute;
+      top: 0;
+      left: 85rem;
+    }
   </style>
 </head>
 <body>
    <canvas id="c"></canvas>
+    <div id="uiContainer">
+      <div id="position">
+        <p>Positions: </p>
+        <p id="posx">X: <span id="x"></span></p>
+        <p id="posy">Y: <span id="y"></span></p>
+        <p id="posz">Z: <span id="z"></span></p>
+      </div>
+    </div>
    <script type="module" src="main.js"></script>
+   <script src="https://webgl2fundamentals.org/webgl/resources/webgl-utils.js"></script>
+  <script src="https://webgl2fundamentals.org/webgl/resources/webgl-lessons-ui.js"></script>
 </body>
 </html>

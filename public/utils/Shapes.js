@@ -180,6 +180,17 @@ export class Shapes {
       gl.STATIC_DRAW);
     }
 
+    setTexture(gl) {
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        0.0,  0.0,
+        1.0,  0.0,
+        0.0,  1.0,
+        0.0,  1.0,
+        1.0,  0.0,
+        1.0,  1.0,
+      ]), gl.STATIC_DRAW);
+    }
+
     setColors(gl) {
   gl.bufferData(
       gl.ARRAY_BUFFER,

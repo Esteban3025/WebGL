@@ -10,6 +10,18 @@ export const m4 = {
     ];
   },
 
+  perspective: function(fieldOfViewInRadians, aspect, near, far) {
+    let f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+    let rangeInv = 1.0 / (near - far);
+ 
+    return [
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (near + far) * rangeInv, -1,
+      0, 0, near * far * rangeInv * 2, 0
+    ];
+  },
+
   multiply: function(a, b) {
     let a00 = a[0 * 4 + 0];
     let a01 = a[0 * 4 + 1];
@@ -96,6 +108,22 @@ export const m4 = {
     ];
   },
 
+  randomInt(range) {
+    return Math.floor(Math.random() * range);
+  },
+
+  getRandomNumber(min, max) {
+    return Math.random() * (max - min) + min;
+  },
+
+  radToDeg(r) {
+    return r * 180 / Math.PI;
+  },
+
+  degToRad(d) {
+    return d * Math.PI / 180;
+  },
+
   zRotation: function(angleInRadians) {
     let c = Math.cos(angleInRadians);
     let s = Math.sin(angleInRadians);
@@ -136,5 +164,14 @@ export const m4 = {
   scale: function(m, sx, sy, sz) {
     return m4.multiply(m, m4.scaling(sx, sy, sz));
   },
+
+  makeZToWMatrix(fudgeFactor) {
+    return [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, fudgeFactor,
+      0, 0, 0, 1,
+    ];
+  }
 
 };

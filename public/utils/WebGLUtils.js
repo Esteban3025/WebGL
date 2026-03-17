@@ -55,118 +55,41 @@ export class WebGL2Utils {
     return needResize;
   }
 
-  processInput(gl, position) {
+  processInput(position, modelRotation) {
     window.addEventListener('keydown', e => {
       let keys = e.key.toLocaleLowerCase();
       console.log("Key Pressed: ", keys);
-      this.inputsCases(keys, position);
+      this.inputsCases(keys, position, modelRotation);
     })
   }
 
-  inputsCases(keys, position, rotation, scale, random) {
-    let speed = -Math.sin(100) * scale.x * 2.0;
-    let rotationSpeed = 5;
-    let scaleAmount = 2;
+  inputsCases(keys, position, modelRotation) {
+    let speed = 5;
+    let rotationSpeed = 100;
     switch (keys) {
-      case ".":
-        random.x += m4.degToRad(rotationSpeed);
-      case "w":
-        // mover en y negativo
-        position.y -= speed;
-        break
-      case "s":
-        // mover en y positivo
-        position.y += speed;
-        break
-      case "d":
-        // mover en x positivo
-        position.x += speed;
-        break
-      case "a":
-        // mover en x negativo
-        position.x -= speed;
-        break
-      case "c":
-        // mover en y positivo
-        position.y += speed;
-        break
-      case "v":
-        // mover en y negativo
-        position.y -= speed;
-        break
-      case "l":
-        // mover en y negativo
-        position.z += speed;
-        break
-      case "k":
-        // mover en y negativo
-        position.z -= speed;
-        break
-      case "+":
-        // escalar hacia arriba
-        scale.x += scaleAmount;
-        scale.y += scaleAmount;
-        scale.z =  scale.z + scaleAmount;
-        break
-      case "-":
-        // escalar hacia abajo
-        if (scale.x > 1 || scale.y > 1 || scale.z > 1 ) {
-          scale.x -= scaleAmount;
-          scale.y -= scaleAmount;
-          scale.z  = scale.z - scaleAmount;
-        }
-        break
-      case "1":
-        // Esto resetea toda las posiciones
-        position.x = 0;
-        position.y = 0;
-        position.z = 0;
-        rotation.x = 0.261;
-        rotation.y = 0.174;
-        rotation.z = 6.283;
-        break
-      case "f":
-      case "arrowright":
-        // rotar en x positivo
-        rotation.x += m4.degToRad(rotationSpeed);
-        console.log("ROTATION X: ", rotation.x);
-        break
-      case "g":
-      case "arrowleft":
-        // rotar en x negativo
-        rotation.x -= m4.degToRad(rotationSpeed);
-        console.log("ROTATION X: ", rotation.x);
-        break
-      case "e":
-      case "arrowup":
-        // rotar en y positivo
-        rotation.y += m4.degToRad(rotationSpeed);
-        console.log("ROTATION Y: ", rotation.y);
-        break
-      case "r":
-      case "arrowdown":
-        // rotar en y negativo
-        rotation.y -= m4.degToRad(rotationSpeed);
-        console.log("ROTATION Y: ", rotation.y);
-        break
-      case "t":
-        // rotar en z positivo
-        rotation.z += m4.degToRad(rotationSpeed);
-        console.log("ROTATION Z: ", rotation.z);
-        break
-      case "y":
-        // rotar en z negativo
-        rotation.z -= m4.degToRad(rotationSpeed);
-        console.log("ROTATION Z: ", rotation.z);
-        break
-      case "2":
-        // MOSTRAR INFO DE POSICIONES
-        console.log("ROTATION: ");
-        rotation.forEach(e => {
-          console.log(e);
-        });
+        case "+":
+          position[1] += speed;
+        break;
+        case "-":
+          position[1] -= speed;
+        break;
+        case "d":
+          position[0] -= speed;
+        break;
+        case "a":
+          position[0] += speed;
+        break;
+        case "w":
+          position[2] += speed;
+        break;
+        case "s":
+          position[2] -= speed;
+        break;
+        case ".":
+          modelRotation += m4.degToRad(rotationSpeed);
+          console.log(modelRotation);
+        break;
         
-        break
       } 
     }
 

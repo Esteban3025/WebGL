@@ -47,11 +47,11 @@ async function main() {
   setGeometry(gl);
 
   // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-  var size = 3;          // 3 components per iteration
-  var type = gl.FLOAT;   // the data is 32bit floats
-  var normalize = false; // don't normalize the data
-  var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-  var offset = 0;        // start at the beginning of the buffer
+  let size = 3;          // 3 components per iteration
+  let type = gl.FLOAT;   // the data is 32bit floats
+  let normalize = false; // don't normalize the data
+  let stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+  let offset = 0;        // start at the beginning of the buffer
   gl.vertexAttribPointer(
       positionAttributeLocation, size, type, normalize, stride, offset);
 
@@ -65,17 +65,20 @@ async function main() {
   gl.enableVertexAttribArray(colorAttributeLocation);
 
   // Tell the attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-  var size = 3;          // 3 components per iteration
-  var type = gl.UNSIGNED_BYTE;   // the data is 8bit unsigned bytes
-  var normalize = true;  // convert from 0-255 to 0.0-1.0
-  var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next color
-  var offset = 0;        // start at the beginning of the buffer
+  size = 3;          // 3 components per iteration
+  type = gl.UNSIGNED_BYTE;   // the data is 8bit unsigned bytes
+  normalize = true;  // convert from 0-255 to 0.0-1.0
+  stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next color
+  offset = 0;        // start at the beginning of the buffer
   gl.vertexAttribPointer(
       colorAttributeLocation, size, type, normalize, stride, offset);
 
 
-  const modelPosition = vec3.fromValues(-3, 0, -100);
-  utils.processInput(gl, modelPosition);
+  let modelPosition = vec3.fromValues(0, 0, -200);
+  let modelRotation = m4.degToRad(45);
+
+  utils.processInput(modelPosition, modelRotation);
+
 
   requestAnimationFrame(drawScene);
 
@@ -87,7 +90,7 @@ async function main() {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     // Clear the canvas
-    gl.clearColor(1, 0, 0, 1);
+    gl.clearColor(1, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // turn on depth testing
@@ -102,41 +105,18 @@ async function main() {
     // Bind the attribute/buffer set we want.
     gl.bindVertexArray(vao);
 
-    // Compute the matrix
     let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    // let zNear = 1;
-    // let zFar = 2000;
-    // let radius = 200;
-    let numFs = 5; 
-    // let fPosition = [radius, 0, 0];
-    // let projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
-    // let cameraMatrix = m4.yRotation(cameraAngleRadians.x);
-    // cameraMatrix = m4.translate(cameraMatrix, 0, 50, radius * 1.5);
-    // let cameraPosition = [
-    //   cameraMatrix[12],
-    //   cameraMatrix[13],
-    //   cameraMatrix[14],
-    // ];
-    // let up = [0, 1, 0];
-    // cameraMatrix = mat4.lookAt(cameraMatrix, cameraPosition, fPosition, up);
-    // let viewMatix = mat4.invert(cameraMatrix, cameraMatrix);
-    // let viewProjectionMatrix = mat4.multiply(projectionMatrix,projectionMatrix,viewMatix);
 
     let view = mat4.create();
     let projection = mat4.create();
-    projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 100);
+    projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 1000);
     view = mat4.translate(view, view, [0, 0, -3]);
     let model = mat4.create();
 
 
-    // Draw 'F's in a circle
-    for (let ii = 0; ii < numFs; ++ii) {
-    // let angle = ii * Math.PI * 2 / numFs;
- 
-    // let x = Math.cos(angle) * radius;
-    // let z = Math.sin(angle) * radius;
-    // add in the translation for this F
+
     model = mat4.translate(model, model, modelPosition);
+    model = mat4.rotate(model, model, modelRotation, [0, 1, 0]);
     // Set the matrix.
     
     gl.uniformMatrix4fv(projectionLocation, false, projection);
@@ -148,7 +128,7 @@ async function main() {
     let offset = 0;
     let count = 16 * 6;
     gl.drawArrays(primitiveType, offset, count);
-  }
+
 
     requestAnimationFrame(drawScene);
   }

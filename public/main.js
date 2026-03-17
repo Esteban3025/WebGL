@@ -1,8 +1,7 @@
 import { WebGL2Utils } from './utils/WebGLUtils.js';
 import { Shapes } from './utils/Shapes.js';
 import { m4 } from './utils/Math.js';
-import { vec2 } from './math/vec2.js';
-import { vec3 } from './math/vec3.js';
+import { mat4, vec3 } from './dist/esm/index.js';
 
 const utils = new WebGL2Utils();
 const shapes = new Shapes();
@@ -22,11 +21,13 @@ async function main() {
   const program = utils.createProgram(gl, vertexShader, fragmentShader);
 
   // look up where the vertex data needs to go.
-  var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-  var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+  let positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+  let colorAttributeLocation = gl.getAttribLocation(program, "a_color");
 
   // look up uniform locations
-  var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+  let modelLocation = gl.getUniformLocation(program, "model");
+  let viewLocation = gl.getUniformLocation(program, "view");
+  let projectionLocation = gl.getUniformLocation(program, "projection");
 
   // Create a buffer
   var positionBuffer = gl.createBuffer();
@@ -72,17 +73,9 @@ async function main() {
   gl.vertexAttribPointer(
       colorAttributeLocation, size, type, normalize, stride, offset);
 
-  // First let's make some variables
-  // to hold the translation,
-  let translation = new vec3(45, 150, 0);
-  let rotation = new vec3(m4.degToRad(40), m4.degToRad(25), m4.degToRad(325));
-  let scale = new vec3(1);
 
-
-  const b = new vec2(12, -5);
-  console.log(b.normalize());
-
-  utils.processInput(gl,translation, rotation, scale);
+  const modelPosition = vec3.fromValues(-3, 0, -100);
+  utils.processInput(gl, modelPosition);
 
   requestAnimationFrame(drawScene);
 
@@ -94,7 +87,7 @@ async function main() {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     // Clear the canvas
-    gl.clearColor(0, 0, 0, 0);
+    gl.clearColor(1, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // turn on depth testing
@@ -110,21 +103,52 @@ async function main() {
     gl.bindVertexArray(vao);
 
     // Compute the matrix
-    var matrix = m4.projection(gl.canvas.clientWidth, gl.canvas.clientHeight, 400);
-    matrix = m4.translate(matrix, translation.x, translation.y, translation.z);
-    matrix = m4.xRotate(matrix, rotation.x);
-    matrix = m4.yRotate(matrix, rotation.y);
-    matrix = m4.zRotate(matrix, rotation.z);
-    matrix = m4.scale(matrix, scale.x, scale.y, scale.z);
+    let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    // let zNear = 1;
+    // let zFar = 2000;
+    // let radius = 200;
+    let numFs = 5; 
+    // let fPosition = [radius, 0, 0];
+    // let projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+    // let cameraMatrix = m4.yRotation(cameraAngleRadians.x);
+    // cameraMatrix = m4.translate(cameraMatrix, 0, 50, radius * 1.5);
+    // let cameraPosition = [
+    //   cameraMatrix[12],
+    //   cameraMatrix[13],
+    //   cameraMatrix[14],
+    // ];
+    // let up = [0, 1, 0];
+    // cameraMatrix = mat4.lookAt(cameraMatrix, cameraPosition, fPosition, up);
+    // let viewMatix = mat4.invert(cameraMatrix, cameraMatrix);
+    // let viewProjectionMatrix = mat4.multiply(projectionMatrix,projectionMatrix,viewMatix);
 
+    let view = mat4.create();
+    let projection = mat4.create();
+    projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 100);
+    view = mat4.translate(view, view, [0, 0, -3]);
+    let model = mat4.create();
+
+
+    // Draw 'F's in a circle
+    for (let ii = 0; ii < numFs; ++ii) {
+    // let angle = ii * Math.PI * 2 / numFs;
+ 
+    // let x = Math.cos(angle) * radius;
+    // let z = Math.sin(angle) * radius;
+    // add in the translation for this F
+    model = mat4.translate(model, model, modelPosition);
     // Set the matrix.
-    gl.uniformMatrix4fv(matrixLocation, false, matrix);
-
+    
+    gl.uniformMatrix4fv(projectionLocation, false, projection);
+    gl.uniformMatrix4fv(viewLocation, false, view);
+    gl.uniformMatrix4fv(modelLocation, false, model);
+ 
     // Draw the geometry.
-    var primitiveType = gl.TRIANGLES;
-    var offset = 0;
-    var count = 16 * 6;
+    let primitiveType = gl.TRIANGLES;
+    let offset = 0;
+    let count = 16 * 6;
     gl.drawArrays(primitiveType, offset, count);
+  }
 
     requestAnimationFrame(drawScene);
   }
@@ -133,9 +157,7 @@ async function main() {
 // Fill the current ARRAY_BUFFER buffer
 // with the values that define a letter 'F'.
 function setGeometry(gl) {
-  gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([
+  let positions = new Float32Array([
           // left column front
           0,   0,  0,
           0, 150,  0,
@@ -263,8 +285,26 @@ function setGeometry(gl) {
           0,   0,   0,
           0, 150,  30,
           0, 150,   0,
-      ]),
-      gl.STATIC_DRAW);
+  ]);
+
+  // Center the F around the origin and Flip it around. We do this because
+  // we're in 3D now with and +Y is up where as before when we started with 2D
+  // we had +Y as down.
+
+  // We could do by changing all the values above but I'm lazy.
+  // We could also do it with a matrix at draw time but you should
+  // never do stuff at draw time if you can do it at init time.
+  let matrix = m4.xRotation(Math.PI);
+  matrix = m4.translate(matrix, -50, -100, -15);
+
+  for (let ii = 0; ii < positions.length; ii += 3) {
+    let vector = m4.transformVector(matrix, [positions[ii + 0], positions[ii + 1], positions[ii + 2], 1]);
+    positions[ii + 0] = vector[0];
+    positions[ii + 1] = vector[1];
+    positions[ii + 2] = vector[2];
+  }
+
+  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 }
 
 // Fill the current ARRAY_BUFFER buffer with colors for the 'F'.

@@ -55,19 +55,21 @@ export class WebGL2Utils {
     return needResize;
   }
 
-  processInput(gl, position, rotation, scale) {
+  processInput(gl, position) {
     window.addEventListener('keydown', e => {
       let keys = e.key.toLocaleLowerCase();
       console.log("Key Pressed: ", keys);
-      this.inputsCases(keys, position, rotation, scale);
+      this.inputsCases(keys, position);
     })
   }
 
-  inputsCases(keys, position, rotation, scale) {
+  inputsCases(keys, position, rotation, scale, random) {
     let speed = -Math.sin(100) * scale.x * 2.0;
     let rotationSpeed = 5;
     let scaleAmount = 2;
     switch (keys) {
+      case ".":
+        random.x += m4.degToRad(rotationSpeed);
       case "w":
         // mover en y negativo
         position.y -= speed;
@@ -108,9 +110,11 @@ export class WebGL2Utils {
         break
       case "-":
         // escalar hacia abajo
-        scale.x -= scaleAmount;
-        scale.y -= scaleAmount;
-        scale.z  = scale.z - scaleAmount;
+        if (scale.x > 1 || scale.y > 1 || scale.z > 1 ) {
+          scale.x -= scaleAmount;
+          scale.y -= scaleAmount;
+          scale.z  = scale.z - scaleAmount;
+        }
         break
       case "1":
         // Esto resetea toda las posiciones

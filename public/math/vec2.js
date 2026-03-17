@@ -1,5 +1,5 @@
 export class vec2 {
-  constructor(x, y) {
+  constructor(x, y = x) {
     this.x = x;
     this.y = y;
   }

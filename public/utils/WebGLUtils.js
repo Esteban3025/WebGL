@@ -55,17 +55,17 @@ export class WebGL2Utils {
     return needResize;
   }
 
-  processInput(position, modelRotation) {
+  processInput(position, modelRotationX, modelRotationY) {
     window.addEventListener('keydown', e => {
       let keys = e.key.toLocaleLowerCase();
       console.log("Key Pressed: ", keys);
-      this.inputsCases(keys, position, modelRotation);
+      this.inputsCases(keys, position, modelRotationX, modelRotationY);
     })
   }
 
-  inputsCases(keys, position, modelRotation) {
+  inputsCases(keys, position, modelRotationX, modelRotationY) {
     let speed = 5;
-    let rotationSpeed = 100;
+    let rotationSpeed = 1.5;
     switch (keys) {
         case "+":
           position[1] += speed;
@@ -85,11 +85,18 @@ export class WebGL2Utils {
         case "s":
           position[2] -= speed;
         break;
-        case ".":
-          modelRotation += m4.degToRad(rotationSpeed);
-          console.log(modelRotation);
+        case "arrowup":
+          modelRotationX[0] += Math.sin(m4.degToRad(rotationSpeed));
         break;
-        
+        case "arrowdown":
+          modelRotationX[0] -= Math.sin(m4.degToRad(rotationSpeed));
+        break;
+        case "arrowright":
+          modelRotationY[0] += Math.sin(m4.degToRad(rotationSpeed));
+        break;
+        case "arrowleft":
+          modelRotationY[0] -= Math.sin(m4.degToRad(rotationSpeed));
+        break;
       } 
     }
 

@@ -5,6 +5,7 @@ import { mat4, vec3 } from './dist/esm/index.js';
 
 const utils = new WebGL2Utils();
 const shapes = new Shapes();
+let lastFrame = 0;
 
 async function main() {
   // Get A WebGL context
@@ -74,16 +75,24 @@ async function main() {
       colorAttributeLocation, size, type, normalize, stride, offset);
 
 
-  let modelPosition = vec3.fromValues(0, 0, -200);
-  let modelRotation = m4.degToRad(45);
+  let camPos = vec3.fromValues(0, 0, -360);
+  let modelRotationX = vec3.fromValues(m4.degToRad(0), 0, 0);
+  let modelRotationY = vec3.fromValues(m4.degToRad(0), 0, 0);
 
-  utils.processInput(modelPosition, modelRotation);
+  utils.processInput(camPos, modelRotationX, modelRotationY);
 
 
   requestAnimationFrame(drawScene);
 
   // Draw the scene.
-  function drawScene() {
+  function drawScene(actualFrame) {
+    actualFrame *= 0.001; // convert the time in seconds
+    let deltaTime = actualFrame - lastFrame;
+
+    let numFs = 10;
+    let radius = 200;
+    let time = Date.now() * 0.001;
+
     utils.resizeCanvasToDisplaySize(gl.canvas);
 
     // Tell WebGL how to convert from clip space to pixels
@@ -110,26 +119,41 @@ async function main() {
     let view = mat4.create();
     let projection = mat4.create();
     projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 1000);
-    view = mat4.translate(view, view, [0, 0, -3]);
-    let model = mat4.create();
 
+    let camX = Math.sin(time) * radius;
+    let camZ = Math.cos(time) * radius;
 
+    // view = mat4.translate(view, view, camPos);
+    view = mat4.targetTo(view, vec3.fromValues(camX, 0, camZ), vec3.fromValues(0, 0, -360), vec3.fromValues(0, 1, 0));
 
-    model = mat4.translate(model, model, modelPosition);
-    model = mat4.rotate(model, model, modelRotation, [0, 1, 0]);
-    // Set the matrix.
-    
     gl.uniformMatrix4fv(projectionLocation, false, projection);
     gl.uniformMatrix4fv(viewLocation, false, view);
-    gl.uniformMatrix4fv(modelLocation, false, model);
+
+
+    
+
+    for (let i = 0; i < numFs; i++) {
+      let angle = i * Math.PI * 2 / numFs;
+
+      let x = Math.cos(angle) * radius;
+      let z = Math.sin(angle) * radius;
+
+      let fModel = mat4.create();
+      fModel = mat4.translate(fModel, fModel, [0, 0, -360]);    
+    
+      fModel = mat4.rotate(fModel, fModel, modelRotationX[0], [0, 0, 1]);
+      fModel = mat4.rotate(fModel, fModel, modelRotationY[0], [0, 1, 0]);    
+      gl.uniformMatrix4fv(modelLocation, false, fModel);
  
-    // Draw the geometry.
-    let primitiveType = gl.TRIANGLES;
-    let offset = 0;
-    let count = 16 * 6;
-    gl.drawArrays(primitiveType, offset, count);
+      // Draw the geometry.
+      let primitiveType = gl.TRIANGLES;
+      let offset = 0;
+      let count = 16 * 6;
+      gl.drawArrays(primitiveType, offset, count);
+    }
+    
 
-
+    lastFrame = actualFrame;
     requestAnimationFrame(drawScene);
   }
 }

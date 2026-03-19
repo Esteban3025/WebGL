@@ -16,6 +16,8 @@ async function main() {
     return;
   }
 
+  let deltaTime = 0;
+
   const vertexShader = await utils.createShader(gl, gl.VERTEX_SHADER, 'shaders/main.vs');
   const fragmentShader = await utils.createShader(gl, gl.FRAGMENT_SHADER, 'shaders/main.fs');
 
@@ -75,22 +77,21 @@ async function main() {
       colorAttributeLocation, size, type, normalize, stride, offset);
 
 
-  let camPos = vec3.fromValues(0, 0, -360);
-  let modelRotationX = vec3.fromValues(m4.degToRad(0), 0, 0);
-  let modelRotationY = vec3.fromValues(m4.degToRad(0), 0, 0);
+  let cameraPos = vec3.fromValues(0, 0, 3);
+  let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
+  let cameraUp = vec3.fromValues(0, 1, 0);
 
-  utils.processInput(camPos, modelRotationX, modelRotationY);
-
+  utils.processInput(cameraPos, cameraFront, cameraUp, deltaTime);
 
   requestAnimationFrame(drawScene);
 
-  // Draw the scene.
-  function drawScene(actualFrame) {
-    actualFrame *= 0.001; // convert the time in seconds
-    let deltaTime = actualFrame - lastFrame;
+  vec3.add(cameraFront, cameraPos, cameraFront);
 
-    let numFs = 10;
-    let radius = 200;
+  // Draw the scene.
+  function drawScene(currentFrame) {
+    currentFrame *= 0.001;
+    deltaTime =  currentFrame - lastFrame;
+    // console.log(deltaTime);
     let time = Date.now() * 0.001;
 
     utils.resizeCanvasToDisplaySize(gl.canvas);
@@ -119,41 +120,25 @@ async function main() {
     let view = mat4.create();
     let projection = mat4.create();
     projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 1000);
-
-    let camX = Math.sin(time) * radius;
-    let camZ = Math.cos(time) * radius;
-
-    // view = mat4.translate(view, view, camPos);
-    view = mat4.targetTo(view, vec3.fromValues(camX, 0, camZ), vec3.fromValues(0, 0, -360), vec3.fromValues(0, 1, 0));
-
     gl.uniformMatrix4fv(projectionLocation, false, projection);
+ 
+    view = mat4.lookAt(view, cameraPos, cameraFront, cameraUp);
+    
     gl.uniformMatrix4fv(viewLocation, false, view);
 
+    let fModel = mat4.create();
+    fModel = mat4.translate(fModel, fModel, [0, 0, 0]);    
+  
+    gl.uniformMatrix4fv(modelLocation, false, fModel);
 
+    // Draw the geometry.
+    let primitiveType = gl.TRIANGLES;
+    let offset = 0;
+    let count = 16 * 6;
+    gl.drawArrays(primitiveType, offset, count);
     
 
-    for (let i = 0; i < numFs; i++) {
-      let angle = i * Math.PI * 2 / numFs;
-
-      let x = Math.cos(angle) * radius;
-      let z = Math.sin(angle) * radius;
-
-      let fModel = mat4.create();
-      fModel = mat4.translate(fModel, fModel, [0, 0, -360]);    
-    
-      fModel = mat4.rotate(fModel, fModel, modelRotationX[0], [0, 0, 1]);
-      fModel = mat4.rotate(fModel, fModel, modelRotationY[0], [0, 1, 0]);    
-      gl.uniformMatrix4fv(modelLocation, false, fModel);
- 
-      // Draw the geometry.
-      let primitiveType = gl.TRIANGLES;
-      let offset = 0;
-      let count = 16 * 6;
-      gl.drawArrays(primitiveType, offset, count);
-    }
-    
-
-    lastFrame = actualFrame;
+    lastFrame = currentFrame;
     requestAnimationFrame(drawScene);
   }
 }

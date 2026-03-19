@@ -1,4 +1,5 @@
-import { m4 } from "./Math.js";
+import { vec3 } from '../dist/esm/index.js';
+import { m4 } from './Math.js';
 
 export class WebGL2Utils {
     
@@ -55,47 +56,35 @@ export class WebGL2Utils {
     return needResize;
   }
 
-  processInput(position, modelRotationX, modelRotationY) {
+  processInput(cameraPos, cameraFront, cameraUp, deltaTime) {
     window.addEventListener('keydown', e => {
       let keys = e.key.toLocaleLowerCase();
       console.log("Key Pressed: ", keys);
-      this.inputsCases(keys, position, modelRotationX, modelRotationY);
+      this.inputsCases(keys, cameraPos, cameraFront, cameraUp, deltaTime);
     })
   }
 
-  inputsCases(keys, position, modelRotationX, modelRotationY) {
-    let speed = 5;
-    let rotationSpeed = 1.5;
+  inputsCases(keys, cameraPos, cameraFront, cameraUp, deltaTime) {
+    let cameraSpeed = 2.5;
+    console.log("cameraPos", cameraPos);
     switch (keys) {
-        case "+":
-          position[1] += speed;
-        break;
-        case "-":
-          position[1] -= speed;
-        break;
-        case "d":
-          position[0] -= speed;
-        break;
-        case "a":
-          position[0] += speed;
-        break;
         case "w":
-          position[2] += speed;
+          cameraPos = m4.scaleAndSub(cameraPos, cameraPos, cameraFront, cameraSpeed); 
         break;
         case "s":
-          position[2] -= speed;
+          cameraPos = vec3.scaleAndAdd(cameraPos, cameraPos, cameraFront, cameraSpeed);
         break;
-        case "arrowup":
-          modelRotationX[0] += Math.sin(m4.degToRad(rotationSpeed));
+        case "a":
+        let addVec = vec3.create();
+        vec3.cross(addVec, cameraFront, cameraUp);
+        vec3.normalize(addVec, addVec)
+        vec3.scaleAndAdd(cameraPos, cameraPos, addVec, cameraSpeed);
         break;
-        case "arrowdown":
-          modelRotationX[0] -= Math.sin(m4.degToRad(rotationSpeed));
-        break;
-        case "arrowright":
-          modelRotationY[0] += Math.sin(m4.degToRad(rotationSpeed));
-        break;
-        case "arrowleft":
-          modelRotationY[0] -= Math.sin(m4.degToRad(rotationSpeed));
+        case "d":
+        let subVec = vec3.create();
+        vec3.cross(subVec, cameraFront, cameraUp);
+        vec3.normalize(subVec, subVec)
+        m4.scaleAndSub(cameraPos, cameraPos, subVec, cameraSpeed);
         break;
       } 
     }

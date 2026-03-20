@@ -77,7 +77,7 @@ async function main() {
       colorAttributeLocation, size, type, normalize, stride, offset);
 
 
-  let cameraPos = vec3.fromValues(0, 0, 3);
+  let cameraPos = vec3.fromValues(0, 0, 313);
   let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
   let cameraUp = vec3.fromValues(0, 1, 0);
 
@@ -85,7 +85,8 @@ async function main() {
 
   requestAnimationFrame(drawScene);
 
-  vec3.add(cameraFront, cameraPos, cameraFront);
+  let currentDirection = vec3.create();
+  
 
   // Draw the scene.
   function drawScene(currentFrame) {
@@ -118,16 +119,19 @@ async function main() {
     let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 
     let view = mat4.create();
+    vec3.add(currentDirection, cameraPos, cameraFront);
+    view = mat4.lookAt(view, cameraPos, currentDirection, cameraUp);
+    gl.uniformMatrix4fv(viewLocation, false, view);
+    
     let projection = mat4.create();
-    projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 1000);
+    projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 10000);
     gl.uniformMatrix4fv(projectionLocation, false, projection);
  
-    view = mat4.lookAt(view, cameraPos, cameraFront, cameraUp);
     
-    gl.uniformMatrix4fv(viewLocation, false, view);
 
     let fModel = mat4.create();
     fModel = mat4.translate(fModel, fModel, [0, 0, 0]);    
+    fModel = mat4.scale(fModel, fModel, [0.1, 0.1, 0.1]);    
   
     gl.uniformMatrix4fv(modelLocation, false, fModel);
 

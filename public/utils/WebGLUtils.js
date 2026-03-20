@@ -65,26 +65,34 @@ export class WebGL2Utils {
   }
 
   inputsCases(keys, cameraPos, cameraFront, cameraUp, deltaTime) {
-    let cameraSpeed = 2.5;
+    let cameraSpeed = 3.5 ;
     console.log("cameraPos", cameraPos);
+    console.log("cameraFront", cameraFront);
+    console.log("cameraUp", cameraUp);
     switch (keys) {
         case "w":
-          cameraPos = m4.scaleAndSub(cameraPos, cameraPos, cameraFront, cameraSpeed); 
+          let a = vec3.create();
+          vec3.scale(a, cameraFront, cameraSpeed);
+          cameraPos = vec3.add(cameraPos, cameraPos, a); 
         break;
         case "s":
-          cameraPos = vec3.scaleAndAdd(cameraPos, cameraPos, cameraFront, cameraSpeed);
+          let b = vec3.create();
+          vec3.scale(b, cameraFront, cameraSpeed);
+          cameraPos = vec3.subtract(cameraPos, cameraPos, b); 
         break;
         case "a":
-        let addVec = vec3.create();
-        vec3.cross(addVec, cameraFront, cameraUp);
-        vec3.normalize(addVec, addVec)
-        vec3.scaleAndAdd(cameraPos, cameraPos, addVec, cameraSpeed);
+        let rightVector = vec3.create();
+        vec3.cross(rightVector, cameraFront, cameraUp);
+        vec3.normalize(rightVector, rightVector);
+        vec3.scale(rightVector, rightVector, cameraSpeed);
+        cameraPos = vec3.subtract(cameraPos, cameraPos, rightVector); 
         break;
         case "d":
         let subVec = vec3.create();
         vec3.cross(subVec, cameraFront, cameraUp);
         vec3.normalize(subVec, subVec)
-        m4.scaleAndSub(cameraPos, cameraPos, subVec, cameraSpeed);
+        vec3.scale(subVec, subVec, cameraSpeed);
+        cameraPos = vec3.add(cameraPos, cameraPos, subVec); 
         break;
       } 
     }

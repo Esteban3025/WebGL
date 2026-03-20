@@ -81,7 +81,7 @@ async function main() {
   let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
   let cameraUp = vec3.fromValues(0, 1, 0);
 
-  utils.processInput(cameraPos, cameraFront, cameraUp, deltaTime);
+  utils.processInput(cameraPos, cameraFront, cameraUp, canvas);
 
   requestAnimationFrame(drawScene);
 
@@ -89,12 +89,7 @@ async function main() {
   
 
   // Draw the scene.
-  function drawScene(currentFrame) {
-    currentFrame *= 0.001;
-    deltaTime =  currentFrame - lastFrame;
-    // console.log(deltaTime);
-    let time = Date.now() * 0.001;
-
+  function drawScene() {
     utils.resizeCanvasToDisplaySize(gl.canvas);
 
     // Tell WebGL how to convert from clip space to pixels
@@ -126,12 +121,10 @@ async function main() {
     let projection = mat4.create();
     projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 10000);
     gl.uniformMatrix4fv(projectionLocation, false, projection);
- 
-    
 
     let fModel = mat4.create();
     fModel = mat4.translate(fModel, fModel, [0, 0, 0]);    
-    fModel = mat4.scale(fModel, fModel, [0.1, 0.1, 0.1]);    
+    fModel = mat4.scale(fModel, fModel, [1, 1, 1]);    
   
     gl.uniformMatrix4fv(modelLocation, false, fModel);
 
@@ -141,8 +134,6 @@ async function main() {
     let count = 16 * 6;
     gl.drawArrays(primitiveType, offset, count);
     
-
-    lastFrame = currentFrame;
     requestAnimationFrame(drawScene);
   }
 }

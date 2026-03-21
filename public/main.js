@@ -1,25 +1,102 @@
-import { WebGL2Utils } from './utils/WebGLUtils.js';
-import { Shapes } from './utils/Shapes.js';
-import { m4 } from './utils/Math.js';
-import { mat4, vec3 } from './dist/esm/index.js';
+import { WebGL2Utils } from "./utils/WebGLUtils.js";
+import { Shapes } from "./utils/Shapes.js";
+import { m4 } from "./utils/Math.js";
+import { mat4, vec3 } from "./dist/esm/index.js";
 
 const utils = new WebGL2Utils();
 const shapes = new Shapes();
-let lastFrame = 0;
 
 async function main() {
   // Get A WebGL context
   /** @type {HTMLCanvasElement} */
-  var canvas = document.querySelector("#c");
-  var gl = canvas.getContext("webgl2");
+  let canvas = document.querySelector("#c");
+  let gl = canvas.getContext("webgl2");
   if (!gl) {
     return;
   }
 
   let deltaTime = 0;
+  let lastFrame = 0;
 
-  const vertexShader = await utils.createShader(gl, gl.VERTEX_SHADER, 'shaders/main.vs');
-  const fragmentShader = await utils.createShader(gl, gl.FRAGMENT_SHADER, 'shaders/main.fs');
+  let firstMouse = true;
+  let yaw = -90.0; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+  let pitch = 0.0;
+  let lastX = 800.0 / 2.0;
+  let lastY = 600.0 / 2.0;
+
+  canvas.addEventListener("click", async () => {
+    if (!document.pointerLockElement) {
+      try {
+        await canvas.requestPointerLock({
+          unadjustedMovement: true,
+        });
+      } catch (error) {
+        if (error.name === "NotSupportedError") {
+          // Some platforms may not support unadjusted movement.
+          await canvas.requestPointerLock();
+        } else {
+          throw error;
+        }
+      }
+    }
+  });
+
+  document.addEventListener("pointerlockchange", lockChangeAlert, false);
+
+  function lockChangeAlert() {
+    if (document.pointerLockElement === canvas) {
+      console.log("The pointer lock status is now locked");
+      document.addEventListener("mousemove", mouseMovement, false);
+    } else {
+      console.log("The pointer lock status is now unlocked");
+      document.removeEventListener("mousemove", mouseMovement, false);
+    }
+  }
+
+  function mouseMovement(e) {
+    const xpos = e.movementX * e.movementX;
+    const ypos = e.movementY * e.movementY;
+    console.log(`Mouse en: X: ${xpos}, Y: ${ypos}`);
+    console.log("pointerlock elemente: ", document.pointerLockElement, " Canvas: ", canvas);
+
+    // if (firstMouse) {
+    //   lastX = xpos;
+    //   lastY = ypos;
+    //   firstMouse = false;
+    // }
+
+    let xoffset = xpos - lastX;
+    let yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    let sensitivity = 1;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    // if (pitch > 89) pitch = 89;
+    // if (pitch < -89) pitch = -89;
+
+    let front = vec3.create();
+    front[0] = Math.cos(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
+    front[1] = Math.sin(m4.degToRad(pitch));
+    front[2] = Math.sin(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
+    vec3.normalize(cameraFront, front);
+  };
+
+  const vertexShader = await utils.createShader(
+    gl,
+    gl.VERTEX_SHADER,
+    "shaders/main.vs",
+  );
+  const fragmentShader = await utils.createShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    "shaders/main.fs",
+  );
 
   const program = utils.createProgram(gl, vertexShader, fragmentShader);
 
@@ -50,13 +127,19 @@ async function main() {
   setGeometry(gl);
 
   // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-  let size = 3;          // 3 components per iteration
-  let type = gl.FLOAT;   // the data is 32bit floats
+  let size = 3; // 3 components per iteration
+  let type = gl.FLOAT; // the data is 32bit floats
   let normalize = false; // don't normalize the data
-  let stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-  let offset = 0;        // start at the beginning of the buffer
+  let stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+  let offset = 0; // start at the beginning of the buffer
   gl.vertexAttribPointer(
-      positionAttributeLocation, size, type, normalize, stride, offset);
+    positionAttributeLocation,
+    size,
+    type,
+    normalize,
+    stride,
+    offset,
+  );
 
   // create the color buffer, make it the current ARRAY_BUFFER
   // and copy in the color values
@@ -68,14 +151,19 @@ async function main() {
   gl.enableVertexAttribArray(colorAttributeLocation);
 
   // Tell the attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-  size = 3;          // 3 components per iteration
-  type = gl.UNSIGNED_BYTE;   // the data is 8bit unsigned bytes
-  normalize = true;  // convert from 0-255 to 0.0-1.0
-  stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next color
-  offset = 0;        // start at the beginning of the buffer
+  size = 3; // 3 components per iteration
+  type = gl.UNSIGNED_BYTE; // the data is 8bit unsigned bytes
+  normalize = true; // convert from 0-255 to 0.0-1.0
+  stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next color
+  offset = 0; // start at the beginning of the buffer
   gl.vertexAttribPointer(
-      colorAttributeLocation, size, type, normalize, stride, offset);
-
+    colorAttributeLocation,
+    size,
+    type,
+    normalize,
+    stride,
+    offset,
+  );
 
   let cameraPos = vec3.fromValues(0, 0, 313);
   let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
@@ -86,7 +174,6 @@ async function main() {
   requestAnimationFrame(drawScene);
 
   let currentDirection = vec3.create();
-  
 
   // Draw the scene.
   function drawScene() {
@@ -117,15 +204,21 @@ async function main() {
     vec3.add(currentDirection, cameraPos, cameraFront);
     view = mat4.lookAt(view, cameraPos, currentDirection, cameraUp);
     gl.uniformMatrix4fv(viewLocation, false, view);
-    
+
     let projection = mat4.create();
-    projection = mat4.perspective(projection, m4.degToRad(45), aspect, 1, 10000);
+    projection = mat4.perspective(
+      projection,
+      m4.degToRad(45),
+      aspect,
+      1,
+      10000,
+    );
     gl.uniformMatrix4fv(projectionLocation, false, projection);
 
     let fModel = mat4.create();
-    fModel = mat4.translate(fModel, fModel, [0, 0, 0]);    
-    fModel = mat4.scale(fModel, fModel, [1, 1, 1]);    
-  
+    fModel = mat4.translate(fModel, fModel, [0, 0, 0]);
+    fModel = mat4.scale(fModel, fModel, [1, 1, 1]);
+
     gl.uniformMatrix4fv(modelLocation, false, fModel);
 
     // Draw the geometry.
@@ -133,7 +226,7 @@ async function main() {
     let offset = 0;
     let count = 16 * 6;
     gl.drawArrays(primitiveType, offset, count);
-    
+
     requestAnimationFrame(drawScene);
   }
 }
@@ -142,133 +235,53 @@ async function main() {
 // with the values that define a letter 'F'.
 function setGeometry(gl) {
   let positions = new Float32Array([
-          // left column front
-          0,   0,  0,
-          0, 150,  0,
-          30,   0,  0,
-          0, 150,  0,
-          30, 150,  0,
-          30,   0,  0,
+    // left column front
+    0, 0, 0, 0, 150, 0, 30, 0, 0, 0, 150, 0, 30, 150, 0, 30, 0, 0,
 
-          // top rung front
-          30,   0,  0,
-          30,  30,  0,
-          100,   0,  0,
-          30,  30,  0,
-          100,  30,  0,
-          100,   0,  0,
+    // top rung front
+    30, 0, 0, 30, 30, 0, 100, 0, 0, 30, 30, 0, 100, 30, 0, 100, 0, 0,
 
-          // middle rung front
-          30,  60,  0,
-          30,  90,  0,
-          67,  60,  0,
-          30,  90,  0,
-          67,  90,  0,
-          67,  60,  0,
+    // middle rung front
+    30, 60, 0, 30, 90, 0, 67, 60, 0, 30, 90, 0, 67, 90, 0, 67, 60, 0,
 
-          // left column back
-            0,   0,  30,
-           30,   0,  30,
-            0, 150,  30,
-            0, 150,  30,
-           30,   0,  30,
-           30, 150,  30,
+    // left column back
+    0, 0, 30, 30, 0, 30, 0, 150, 30, 0, 150, 30, 30, 0, 30, 30, 150, 30,
 
-          // top rung back
-           30,   0,  30,
-          100,   0,  30,
-           30,  30,  30,
-           30,  30,  30,
-          100,   0,  30,
-          100,  30,  30,
+    // top rung back
+    30, 0, 30, 100, 0, 30, 30, 30, 30, 30, 30, 30, 100, 0, 30, 100, 30, 30,
 
-          // middle rung back
-           30,  60,  30,
-           67,  60,  30,
-           30,  90,  30,
-           30,  90,  30,
-           67,  60,  30,
-           67,  90,  30,
+    // middle rung back
+    30, 60, 30, 67, 60, 30, 30, 90, 30, 30, 90, 30, 67, 60, 30, 67, 90, 30,
 
-          // top
-            0,   0,   0,
-          100,   0,   0,
-          100,   0,  30,
-            0,   0,   0,
-          100,   0,  30,
-            0,   0,  30,
+    // top
+    0, 0, 0, 100, 0, 0, 100, 0, 30, 0, 0, 0, 100, 0, 30, 0, 0, 30,
 
-          // top rung right
-          100,   0,   0,
-          100,  30,   0,
-          100,  30,  30,
-          100,   0,   0,
-          100,  30,  30,
-          100,   0,  30,
+    // top rung right
+    100, 0, 0, 100, 30, 0, 100, 30, 30, 100, 0, 0, 100, 30, 30, 100, 0, 30,
 
-          // under top rung
-          30,   30,   0,
-          30,   30,  30,
-          100,  30,  30,
-          30,   30,   0,
-          100,  30,  30,
-          100,  30,   0,
+    // under top rung
+    30, 30, 0, 30, 30, 30, 100, 30, 30, 30, 30, 0, 100, 30, 30, 100, 30, 0,
 
-          // between top rung and middle
-          30,   30,   0,
-          30,   60,  30,
-          30,   30,  30,
-          30,   30,   0,
-          30,   60,   0,
-          30,   60,  30,
+    // between top rung and middle
+    30, 30, 0, 30, 60, 30, 30, 30, 30, 30, 30, 0, 30, 60, 0, 30, 60, 30,
 
-          // top of middle rung
-          30,   60,   0,
-          67,   60,  30,
-          30,   60,  30,
-          30,   60,   0,
-          67,   60,   0,
-          67,   60,  30,
+    // top of middle rung
+    30, 60, 0, 67, 60, 30, 30, 60, 30, 30, 60, 0, 67, 60, 0, 67, 60, 30,
 
-          // right of middle rung
-          67,   60,   0,
-          67,   90,  30,
-          67,   60,  30,
-          67,   60,   0,
-          67,   90,   0,
-          67,   90,  30,
+    // right of middle rung
+    67, 60, 0, 67, 90, 30, 67, 60, 30, 67, 60, 0, 67, 90, 0, 67, 90, 30,
 
-          // bottom of middle rung.
-          30,   90,   0,
-          30,   90,  30,
-          67,   90,  30,
-          30,   90,   0,
-          67,   90,  30,
-          67,   90,   0,
+    // bottom of middle rung.
+    30, 90, 0, 30, 90, 30, 67, 90, 30, 30, 90, 0, 67, 90, 30, 67, 90, 0,
 
-          // right of bottom
-          30,   90,   0,
-          30,  150,  30,
-          30,   90,  30,
-          30,   90,   0,
-          30,  150,   0,
-          30,  150,  30,
+    // right of bottom
+    30, 90, 0, 30, 150, 30, 30, 90, 30, 30, 90, 0, 30, 150, 0, 30, 150, 30,
 
-          // bottom
-          0,   150,   0,
-          0,   150,  30,
-          30,  150,  30,
-          0,   150,   0,
-          30,  150,  30,
-          30,  150,   0,
+    // bottom
+    0, 150, 0, 0, 150, 30, 30, 150, 30, 0, 150, 0, 30, 150, 30, 30, 150, 0,
 
-          // left side
-          0,   0,   0,
-          0,   0,  30,
-          0, 150,  30,
-          0,   0,   0,
-          0, 150,  30,
-          0, 150,   0,
+    // left side
+    0, 0, 0, 0, 0, 30, 0, 150, 30, 0, 0, 0, 0, 150, 30, 0, 150, 0,
   ]);
 
   // Center the F around the origin and Flip it around. We do this because
@@ -282,7 +295,12 @@ function setGeometry(gl) {
   matrix = m4.translate(matrix, -50, -100, -15);
 
   for (let ii = 0; ii < positions.length; ii += 3) {
-    let vector = m4.transformVector(matrix, [positions[ii + 0], positions[ii + 1], positions[ii + 2], 1]);
+    let vector = m4.transformVector(matrix, [
+      positions[ii + 0],
+      positions[ii + 1],
+      positions[ii + 2],
+      1,
+    ]);
     positions[ii + 0] = vector[0];
     positions[ii + 1] = vector[1];
     positions[ii + 2] = vector[2];
@@ -294,138 +312,74 @@ function setGeometry(gl) {
 // Fill the current ARRAY_BUFFER buffer with colors for the 'F'.
 function setColors(gl) {
   gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Uint8Array([
-          // left column front
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
+    gl.ARRAY_BUFFER,
+    new Uint8Array([
+      // left column front
+      200, 70, 120, 200, 70, 120, 200, 70, 120, 200, 70, 120, 200, 70, 120, 200,
+      70, 120,
 
-          // top rung front
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
+      // top rung front
+      200, 70, 120, 200, 70, 120, 200, 70, 120, 200, 70, 120, 200, 70, 120, 200,
+      70, 120,
 
-          // middle rung front
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
-        200,  70, 120,
+      // middle rung front
+      200, 70, 120, 200, 70, 120, 200, 70, 120, 200, 70, 120, 200, 70, 120, 200,
+      70, 120,
 
-          // left column back
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
+      // left column back
+      80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70,
+      200,
 
-          // top rung back
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
+      // top rung back
+      80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70,
+      200,
 
-          // middle rung back
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
-        80, 70, 200,
+      // middle rung back
+      80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70, 200, 80, 70,
+      200,
 
-          // top
-        70, 200, 210,
-        70, 200, 210,
-        70, 200, 210,
-        70, 200, 210,
-        70, 200, 210,
-        70, 200, 210,
+      // top
+      70, 200, 210, 70, 200, 210, 70, 200, 210, 70, 200, 210, 70, 200, 210, 70,
+      200, 210,
 
-          // top rung right
-        200, 200, 70,
-        200, 200, 70,
-        200, 200, 70,
-        200, 200, 70,
-        200, 200, 70,
-        200, 200, 70,
+      // top rung right
+      200, 200, 70, 200, 200, 70, 200, 200, 70, 200, 200, 70, 200, 200, 70, 200,
+      200, 70,
 
-          // under top rung
-        210, 100, 70,
-        210, 100, 70,
-        210, 100, 70,
-        210, 100, 70,
-        210, 100, 70,
-        210, 100, 70,
+      // under top rung
+      210, 100, 70, 210, 100, 70, 210, 100, 70, 210, 100, 70, 210, 100, 70, 210,
+      100, 70,
 
-          // between top rung and middle
-        210, 160, 70,
-        210, 160, 70,
-        210, 160, 70,
-        210, 160, 70,
-        210, 160, 70,
-        210, 160, 70,
+      // between top rung and middle
+      210, 160, 70, 210, 160, 70, 210, 160, 70, 210, 160, 70, 210, 160, 70, 210,
+      160, 70,
 
-          // top of middle rung
-        70, 180, 210,
-        70, 180, 210,
-        70, 180, 210,
-        70, 180, 210,
-        70, 180, 210,
-        70, 180, 210,
+      // top of middle rung
+      70, 180, 210, 70, 180, 210, 70, 180, 210, 70, 180, 210, 70, 180, 210, 70,
+      180, 210,
 
-          // right of middle rung
-        100, 70, 210,
-        100, 70, 210,
-        100, 70, 210,
-        100, 70, 210,
-        100, 70, 210,
-        100, 70, 210,
+      // right of middle rung
+      100, 70, 210, 100, 70, 210, 100, 70, 210, 100, 70, 210, 100, 70, 210, 100,
+      70, 210,
 
-          // bottom of middle rung.
-        76, 210, 100,
-        76, 210, 100,
-        76, 210, 100,
-        76, 210, 100,
-        76, 210, 100,
-        76, 210, 100,
+      // bottom of middle rung.
+      76, 210, 100, 76, 210, 100, 76, 210, 100, 76, 210, 100, 76, 210, 100, 76,
+      210, 100,
 
-          // right of bottom
-        140, 210, 80,
-        140, 210, 80,
-        140, 210, 80,
-        140, 210, 80,
-        140, 210, 80,
-        140, 210, 80,
+      // right of bottom
+      140, 210, 80, 140, 210, 80, 140, 210, 80, 140, 210, 80, 140, 210, 80, 140,
+      210, 80,
 
-          // bottom
-        90, 130, 110,
-        90, 130, 110,
-        90, 130, 110,
-        90, 130, 110,
-        90, 130, 110,
-        90, 130, 110,
+      // bottom
+      90, 130, 110, 90, 130, 110, 90, 130, 110, 90, 130, 110, 90, 130, 110, 90,
+      130, 110,
 
-          // left side
-        160, 160, 220,
-        160, 160, 220,
-        160, 160, 220,
-        160, 160, 220,
-        160, 160, 220,
-        160, 160, 220,
-      ]),
-      gl.STATIC_DRAW);
+      // left side
+      160, 160, 220, 160, 160, 220, 160, 160, 220, 160, 160, 220, 160, 160, 220,
+      160, 160, 220,
+    ]),
+    gl.STATIC_DRAW,
+  );
 }
-
 
 main();

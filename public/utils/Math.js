@@ -1,28 +1,51 @@
 export const m4 = {
-
-  projection: function(width, height, depth) {
+  projection: function (width, height, depth) {
     // Note: This matrix flips the Y axis so 0 is at the top.
     return [
-       2 / width, 0, 0, 0,
-       0, -2 / height, 0, 0,
-       0, 0, 2 / depth, 0,
-      -1, 1, 0, 1,
+      2 / width,
+      0,
+      0,
+      0,
+      0,
+      -2 / height,
+      0,
+      0,
+      0,
+      0,
+      2 / depth,
+      0,
+      -1,
+      1,
+      0,
+      1,
     ];
   },
 
-  perspective: function(fieldOfViewInRadians, aspect, near, far) {
+  perspective: function (fieldOfViewInRadians, aspect, near, far) {
     let f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
     let rangeInv = 1.0 / (near - far);
- 
+
     return [
-      f / aspect, 0, 0, 0,
-      0, f, 0, 0,
-      0, 0, (near + far) * rangeInv, -1,
-      0, 0, near * far * rangeInv * 2, 0
+      f / aspect,
+      0,
+      0,
+      0,
+      0,
+      f,
+      0,
+      0,
+      0,
+      0,
+      (near + far) * rangeInv,
+      -1,
+      0,
+      0,
+      near * far * rangeInv * 2,
+      0,
     ];
   },
 
-  inverse: function(m) {
+  inverse: function (m) {
     let m00 = m[0 * 4 + 0];
     let m01 = m[0 * 4 + 1];
     let m02 = m[0 * 4 + 2];
@@ -39,16 +62,16 @@ export const m4 = {
     let m31 = m[3 * 4 + 1];
     let m32 = m[3 * 4 + 2];
     let m33 = m[3 * 4 + 3];
-    let tmp_0  = m22 * m33;
-    let tmp_1  = m32 * m23;
-    let tmp_2  = m12 * m33;
-    let tmp_3  = m32 * m13;
-    let tmp_4  = m12 * m23;
-    let tmp_5  = m22 * m13;
-    let tmp_6  = m02 * m33;
-    let tmp_7  = m32 * m03;
-    let tmp_8  = m02 * m23;
-    let tmp_9  = m22 * m03;
+    let tmp_0 = m22 * m33;
+    let tmp_1 = m32 * m23;
+    let tmp_2 = m12 * m33;
+    let tmp_3 = m32 * m13;
+    let tmp_4 = m12 * m23;
+    let tmp_5 = m22 * m13;
+    let tmp_6 = m02 * m33;
+    let tmp_7 = m32 * m03;
+    let tmp_8 = m02 * m23;
+    let tmp_9 = m22 * m03;
     let tmp_10 = m02 * m13;
     let tmp_11 = m12 * m03;
     let tmp_12 = m20 * m31;
@@ -64,14 +87,26 @@ export const m4 = {
     let tmp_22 = m00 * m11;
     let tmp_23 = m10 * m01;
 
-    let t0 = (tmp_0 * m11 + tmp_3 * m21 + tmp_4 * m31) -
-             (tmp_1 * m11 + tmp_2 * m21 + tmp_5 * m31);
-    let t1 = (tmp_1 * m01 + tmp_6 * m21 + tmp_9 * m31) -
-             (tmp_0 * m01 + tmp_7 * m21 + tmp_8 * m31);
-    let t2 = (tmp_2 * m01 + tmp_7 * m11 + tmp_10 * m31) -
-             (tmp_3 * m01 + tmp_6 * m11 + tmp_11 * m31);
-    let t3 = (tmp_5 * m01 + tmp_8 * m11 + tmp_11 * m21) -
-             (tmp_4 * m01 + tmp_9 * m11 + tmp_10 * m21);
+    let t0 =
+      tmp_0 * m11 +
+      tmp_3 * m21 +
+      tmp_4 * m31 -
+      (tmp_1 * m11 + tmp_2 * m21 + tmp_5 * m31);
+    let t1 =
+      tmp_1 * m01 +
+      tmp_6 * m21 +
+      tmp_9 * m31 -
+      (tmp_0 * m01 + tmp_7 * m21 + tmp_8 * m31);
+    let t2 =
+      tmp_2 * m01 +
+      tmp_7 * m11 +
+      tmp_10 * m31 -
+      (tmp_3 * m01 + tmp_6 * m11 + tmp_11 * m31);
+    let t3 =
+      tmp_5 * m01 +
+      tmp_8 * m11 +
+      tmp_11 * m21 -
+      (tmp_4 * m01 + tmp_9 * m11 + tmp_10 * m21);
 
     let d = 1.0 / (m00 * t0 + m10 * t1 + m20 * t2 + m30 * t3);
 
@@ -80,34 +115,70 @@ export const m4 = {
       d * t1,
       d * t2,
       d * t3,
-      d * ((tmp_1 * m10 + tmp_2 * m20 + tmp_5 * m30) -
-           (tmp_0 * m10 + tmp_3 * m20 + tmp_4 * m30)),
-      d * ((tmp_0 * m00 + tmp_7 * m20 + tmp_8 * m30) -
-           (tmp_1 * m00 + tmp_6 * m20 + tmp_9 * m30)),
-      d * ((tmp_3 * m00 + tmp_6 * m10 + tmp_11 * m30) -
-           (tmp_2 * m00 + tmp_7 * m10 + tmp_10 * m30)),
-      d * ((tmp_4 * m00 + tmp_9 * m10 + tmp_10 * m20) -
-           (tmp_5 * m00 + tmp_8 * m10 + tmp_11 * m20)),
-      d * ((tmp_12 * m13 + tmp_15 * m23 + tmp_16 * m33) -
-           (tmp_13 * m13 + tmp_14 * m23 + tmp_17 * m33)),
-      d * ((tmp_13 * m03 + tmp_18 * m23 + tmp_21 * m33) -
-           (tmp_12 * m03 + tmp_19 * m23 + tmp_20 * m33)),
-      d * ((tmp_14 * m03 + tmp_19 * m13 + tmp_22 * m33) -
-           (tmp_15 * m03 + tmp_18 * m13 + tmp_23 * m33)),
-      d * ((tmp_17 * m03 + tmp_20 * m13 + tmp_23 * m23) -
-           (tmp_16 * m03 + tmp_21 * m13 + tmp_22 * m23)),
-      d * ((tmp_14 * m22 + tmp_17 * m32 + tmp_13 * m12) -
-           (tmp_16 * m32 + tmp_12 * m12 + tmp_15 * m22)),
-      d * ((tmp_20 * m32 + tmp_12 * m02 + tmp_19 * m22) -
-           (tmp_18 * m22 + tmp_21 * m32 + tmp_13 * m02)),
-      d * ((tmp_18 * m12 + tmp_23 * m32 + tmp_15 * m02) -
-           (tmp_22 * m32 + tmp_14 * m02 + tmp_19 * m12)),
-      d * ((tmp_22 * m22 + tmp_16 * m02 + tmp_21 * m12) -
-           (tmp_20 * m12 + tmp_23 * m22 + tmp_17 * m02)),
+      d *
+        (tmp_1 * m10 +
+          tmp_2 * m20 +
+          tmp_5 * m30 -
+          (tmp_0 * m10 + tmp_3 * m20 + tmp_4 * m30)),
+      d *
+        (tmp_0 * m00 +
+          tmp_7 * m20 +
+          tmp_8 * m30 -
+          (tmp_1 * m00 + tmp_6 * m20 + tmp_9 * m30)),
+      d *
+        (tmp_3 * m00 +
+          tmp_6 * m10 +
+          tmp_11 * m30 -
+          (tmp_2 * m00 + tmp_7 * m10 + tmp_10 * m30)),
+      d *
+        (tmp_4 * m00 +
+          tmp_9 * m10 +
+          tmp_10 * m20 -
+          (tmp_5 * m00 + tmp_8 * m10 + tmp_11 * m20)),
+      d *
+        (tmp_12 * m13 +
+          tmp_15 * m23 +
+          tmp_16 * m33 -
+          (tmp_13 * m13 + tmp_14 * m23 + tmp_17 * m33)),
+      d *
+        (tmp_13 * m03 +
+          tmp_18 * m23 +
+          tmp_21 * m33 -
+          (tmp_12 * m03 + tmp_19 * m23 + tmp_20 * m33)),
+      d *
+        (tmp_14 * m03 +
+          tmp_19 * m13 +
+          tmp_22 * m33 -
+          (tmp_15 * m03 + tmp_18 * m13 + tmp_23 * m33)),
+      d *
+        (tmp_17 * m03 +
+          tmp_20 * m13 +
+          tmp_23 * m23 -
+          (tmp_16 * m03 + tmp_21 * m13 + tmp_22 * m23)),
+      d *
+        (tmp_14 * m22 +
+          tmp_17 * m32 +
+          tmp_13 * m12 -
+          (tmp_16 * m32 + tmp_12 * m12 + tmp_15 * m22)),
+      d *
+        (tmp_20 * m32 +
+          tmp_12 * m02 +
+          tmp_19 * m22 -
+          (tmp_18 * m22 + tmp_21 * m32 + tmp_13 * m02)),
+      d *
+        (tmp_18 * m12 +
+          tmp_23 * m32 +
+          tmp_15 * m02 -
+          (tmp_22 * m32 + tmp_14 * m02 + tmp_19 * m12)),
+      d *
+        (tmp_22 * m22 +
+          tmp_16 * m02 +
+          tmp_21 * m12 -
+          (tmp_20 * m12 + tmp_23 * m22 + tmp_17 * m02)),
     ];
   },
 
-  multiply: function(a, b) {
+  multiply: function (a, b) {
     let a00 = a[0 * 4 + 0];
     let a01 = a[0 * 4 + 1];
     let a02 = a[0 * 4 + 2];
@@ -160,37 +231,22 @@ export const m4 = {
     ];
   },
 
-  translation: function(tx, ty, tz) {
-    return [
-       1,  0,  0,  0,
-       0,  1,  0,  0,
-       0,  0,  1,  0,
-       tx, ty, tz, 1,
-    ];
+  translation: function (tx, ty, tz) {
+    return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tx, ty, tz, 1];
   },
 
-  xRotation: function(angleInRadians) {
+  xRotation: function (angleInRadians) {
     let c = Math.cos(angleInRadians);
     let s = Math.sin(angleInRadians);
 
-    return [
-      1, 0, 0, 0,
-      0, c, s, 0,
-      0, -s, c, 0,
-      0, 0, 0, 1,
-    ];
+    return [1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1];
   },
 
-  yRotation: function(angleInRadians) {
+  yRotation: function (angleInRadians) {
     let c = Math.cos(angleInRadians);
     let s = Math.sin(angleInRadians);
 
-    return [
-      c, 0, -s, 0,
-      0, 1, 0, 0,
-      s, 0, c, 0,
-      0, 0, 0, 1,
-    ];
+    return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1];
   },
 
   randomInt(range) {
@@ -209,35 +265,25 @@ export const m4 = {
   },
 
   radToDeg(r) {
-    return r * 180 / Math.PI;
+    return (r * 180) / Math.PI;
   },
 
   degToRad(d) {
-    return d * Math.PI / 180;
+    return (d * Math.PI) / 180;
   },
 
-  zRotation: function(angleInRadians) {
+  zRotation: function (angleInRadians) {
     let c = Math.cos(angleInRadians);
     let s = Math.sin(angleInRadians);
 
-    return [
-       c, s, 0, 0,
-      -s, c, 0, 0,
-       0, 0, 1, 0,
-       0, 0, 0, 1,
-    ];
+    return [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   },
 
-  scaling: function(sx, sy, sz) {
-    return [
-      sx, 0,  0,  0,
-      0, sy,  0,  0,
-      0,  0, sz,  0,
-      0,  0,  0,  1,
-    ];
+  scaling: function (sx, sy, sz) {
+    return [sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0, 0, 0, 0, 1];
   },
 
-  transformVector: function(m, v) {
+  transformVector: function (m, v) {
     let dst = [];
     for (let i = 0; i < 4; ++i) {
       dst[i] = 0.0;
@@ -247,11 +293,13 @@ export const m4 = {
     }
     return dst;
   },
-  
+
   cross: (a, b) => {
-  return [a[1] * b[2] - a[2] * b[1],
-          a[2] * b[0] - a[0] * b[2],
-          a[0] * b[1] - a[1] * b[0]];
+    return [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0],
+    ];
   },
 
   subtractVectors: (a, b) => {
@@ -259,25 +307,33 @@ export const m4 = {
   },
 
   normalize: (v) => {
-  let length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    let length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     // make sure we don't divide by 0.
     if (length > 0.00001) {
       return [v[0] / length, v[1] / length, v[2] / length];
     } else {
-     return [0, 0, 0];
+      return [0, 0, 0];
     }
   },
 
-  lookAt: function(cameraPosition, target, up) {
-    let zAxis = m4.normalize(
-        m4.subtractVectors(cameraPosition, target));
+  lookAt: function (cameraPosition, target, up) {
+    let zAxis = m4.normalize(m4.subtractVectors(cameraPosition, target));
     let xAxis = m4.normalize(m4.cross(up, zAxis));
     let yAxis = m4.normalize(m4.cross(zAxis, xAxis));
- 
+
     return [
-      xAxis[0], xAxis[1], xAxis[2], 0,
-      yAxis[0], yAxis[1], yAxis[2], 0,
-      zAxis[0], zAxis[1], zAxis[2], 0,
+      xAxis[0],
+      xAxis[1],
+      xAxis[2],
+      0,
+      yAxis[0],
+      yAxis[1],
+      yAxis[2],
+      0,
+      zAxis[0],
+      zAxis[1],
+      zAxis[2],
+      0,
       cameraPosition[0],
       cameraPosition[1],
       cameraPosition[2],
@@ -285,33 +341,27 @@ export const m4 = {
     ];
   },
 
-  translate: function(m, tx, ty, tz) {
+  translate: function (m, tx, ty, tz) {
     return m4.multiply(m, m4.translation(tx, ty, tz));
   },
 
-  xRotate: function(m, angleInRadians) {
+  xRotate: function (m, angleInRadians) {
     return m4.multiply(m, m4.xRotation(angleInRadians));
   },
 
-  yRotate: function(m, angleInRadians) {
+  yRotate: function (m, angleInRadians) {
     return m4.multiply(m, m4.yRotation(angleInRadians));
   },
 
-  zRotate: function(m, angleInRadians) {
+  zRotate: function (m, angleInRadians) {
     return m4.multiply(m, m4.zRotation(angleInRadians));
   },
 
-  scale: function(m, sx, sy, sz) {
+  scale: function (m, sx, sy, sz) {
     return m4.multiply(m, m4.scaling(sx, sy, sz));
   },
 
   makeZToWMatrix(fudgeFactor) {
-    return [
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, fudgeFactor,
-      0, 0, 0, 1,
-    ];
-  }
-
+    return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, fudgeFactor, 0, 0, 0, 1];
+  },
 };

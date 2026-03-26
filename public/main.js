@@ -1,28 +1,30 @@
 import { WebGL2Utils } from "./utils/WebGLUtils.js";
-import { Shapes } from "./utils/Shapes.js";
 import { m4 } from "./utils/Math.js";
 import { mat4, vec3 } from "./dist/esm/index.js";
 
 const utils = new WebGL2Utils();
-const shapes = new Shapes();
 
 async function main() {
   // Get A WebGL context
   /** @type {HTMLCanvasElement} */
   let canvas = document.querySelector("#c");
+  let dx = document.getElementById("x");
+  let dy = document.getElementById("y");
+  let dz = document.getElementById("z");
   let gl = canvas.getContext("webgl2");
   if (!gl) {
     return;
   }
 
-  let deltaTime = 0;
-  let lastFrame = 0;
-
   let firstMouse = true;
-  let yaw = -90.0; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-  let pitch = 0.0;
-  let lastX = 800.0 / 2.0;
-  let lastY = 600.0 / 2.0;
+  let yaw = -90; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+  let pitch = 0;
+  let lastX = gl.canvas.clientWidth / 2;
+  let lastY = gl.canvas.clientHeight  / 2;
+
+  let cameraPos = vec3.fromValues(0, 0, 313);
+  let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
+  let cameraUp = vec3.fromValues(0, 1, 0);
 
   canvas.addEventListener("click", async () => {
     if (!document.pointerLockElement) {
@@ -54,37 +56,42 @@ async function main() {
   }
 
   function mouseMovement(e) {
-    const xpos = e.movementX * e.movementX;
-    const ypos = e.movementY * e.movementY;
+    const xpos = e.movementX;
+    const ypos = e.movementY;
     console.log(`Mouse en: X: ${xpos}, Y: ${ypos}`);
-    console.log("pointerlock elemente: ", document.pointerLockElement, " Canvas: ", canvas);
 
-    // if (firstMouse) {
-    //   lastX = xpos;
-    //   lastY = ypos;
-    //   firstMouse = false;
-    // }
+    if (firstMouse) {
+      lastX = xpos;
+      lastY = ypos;
+      firstMouse = false;
+    }
 
-    let xoffset = xpos - lastX;
-    let yoffset = lastY - ypos;
+    let xoffset = e.movementX;
+    let yoffset = -e.movementY;
     lastX = xpos;
     lastY = ypos;
 
-    let sensitivity = 1;
+    const sensitivity = 0.1;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
     yaw += xoffset;
     pitch += yoffset;
 
-    // if (pitch > 89) pitch = 89;
-    // if (pitch < -89) pitch = -89;
+    if (pitch > 89) pitch = 89;
+    if (pitch < -89) pitch = -89;
 
-    let front = vec3.create();
-    front[0] = Math.cos(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
-    front[1] = Math.sin(m4.degToRad(pitch));
-    front[2] = Math.sin(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
-    vec3.normalize(cameraFront, front);
+    let direction = vec3.create();
+    direction[0] = Math.cos(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
+    direction[1] = Math.sin(m4.degToRad(pitch));
+    direction[2] = Math.sin(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
+    vec3.normalize(cameraFront, direction);
+    cameraFront  = direction;
+
+    console.log("Camera Front: ", cameraFront[0], cameraFront[1], cameraFront[2]);
+    console.log("_Pitch:", pitch);
+    console.log("_Yaw:", yaw);
+  
   };
 
   const vertexShader = await utils.createShader(
@@ -165,9 +172,7 @@ async function main() {
     offset,
   );
 
-  let cameraPos = vec3.fromValues(0, 0, 313);
-  let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
-  let cameraUp = vec3.fromValues(0, 1, 0);
+  
 
   utils.processInput(cameraPos, cameraFront, cameraUp, canvas);
 
@@ -204,6 +209,9 @@ async function main() {
     vec3.add(currentDirection, cameraPos, cameraFront);
     view = mat4.lookAt(view, cameraPos, currentDirection, cameraUp);
     gl.uniformMatrix4fv(viewLocation, false, view);
+    dx.textContent = cameraPos[0].toFixed(2);
+    dy.textContent = cameraPos[1].toFixed(2);
+    dz.textContent = cameraPos[2].toFixed(2);
 
     let projection = mat4.create();
     projection = mat4.perspective(

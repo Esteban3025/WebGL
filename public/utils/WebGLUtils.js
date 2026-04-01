@@ -54,45 +54,41 @@ export class WebGL2Utils {
     return needResize;
   }
 
-  processInput(cameraPos, cameraFront, cameraUp) {
+  processInput(cameraPos, cameraFront, cameraUp, dt) {
     window.addEventListener("keydown", (e) => {
       let keys = e.key.toLocaleLowerCase();
       // console.log("Key Pressed: ", keys);
 
-      this.inputsCases(keys, cameraPos, cameraFront, cameraUp);
+      this.inputsCases(keys, cameraPos, cameraFront, cameraUp, dt);
     });
   }
 
-  inputsCases(keys, cameraPos, cameraFront, cameraUp) {
-    let cameraSpeed = 3.5;
+  inputsCases(keys, cameraPos, cameraFront, cameraUp, dt) {
+    let cameraSpeed = 3.0;
     // console.log("Camera Speed: ", cameraSpeed);
     // console.log("cameraPos", cameraPos);
     // console.log("cameraFront", cameraFront);
     // console.log("cameraUp", cameraUp);
     switch (keys) {
       case "w":
-        let a = vec3.create();
-        vec3.scale(a, cameraFront, cameraSpeed);
-        cameraPos = vec3.add(cameraPos, cameraPos, a);
+        vec3.scaleAndAdd(cameraPos, cameraPos, cameraFront, +cameraSpeed);
+        cameraPos[1] = 0.0;
         break;
       case "s":
-        let b = vec3.create();
-        vec3.scale(b, cameraFront, cameraSpeed);
-        cameraPos = vec3.subtract(cameraPos, cameraPos, b);
+        vec3.scaleAndAdd(cameraPos, cameraPos, cameraFront, -cameraSpeed);
+        cameraPos[1] = 0.0;
         break;
       case "a":
         let rightVector = vec3.create();
         vec3.cross(rightVector, cameraFront, cameraUp);
         vec3.normalize(rightVector, rightVector);
-        vec3.scale(rightVector, rightVector, cameraSpeed);
-        cameraPos = vec3.subtract(cameraPos, cameraPos, rightVector);
+        vec3.scaleAndAdd(cameraPos, cameraPos, rightVector, -cameraSpeed);
         break;
       case "d":
-        let subVec = vec3.create();
-        vec3.cross(subVec, cameraFront, cameraUp);
-        vec3.normalize(subVec, subVec);
-        vec3.scale(subVec, subVec, cameraSpeed);
-        cameraPos = vec3.add(cameraPos, cameraPos, subVec);
+        let fd = vec3.create();
+        vec3.cross(fd, cameraFront, cameraUp);
+        vec3.normalize(fd, fd);
+        vec3.scaleAndAdd(cameraPos, cameraPos, fd, +cameraSpeed);
         break;
     }
   }

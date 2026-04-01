@@ -1,16 +1,25 @@
 import { WebGL2Utils } from "./utils/WebGLUtils.js";
 import { m4 } from "./utils/Math.js";
 import { mat4, vec3 } from "./dist/esm/index.js";
+import { ProcessMovement } from "./input.js";
 
 const utils = new WebGL2Utils();
 
+export let cameraPos = vec3.fromValues(0, 0, 313);
+export let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
+export let cameraUp = vec3.fromValues(0, 1, 0);
+export let cameraSpeed = 5.0;
+export let keyPressed = new Set();
+export let movement = false; // Evitar el movimiento antes de capturar el mouse
+
 async function main() {
-  // Get A WebGL context
+  // Get A WebGL context  let movement = false;
   /** @type {HTMLCanvasElement} */
   let canvas = document.querySelector("#c");
   let dx = document.getElementById("x");
   let dy = document.getElementById("y");
   let dz = document.getElementById("z");
+  let delta = document.getElementById("deltatime");
   let gl = canvas.getContext("webgl2");
   if (!gl) {
     return;
@@ -19,12 +28,19 @@ async function main() {
   let firstMouse = true;
   let yaw = -90; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
   let pitch = 0;
-  let lastX = gl.canvas.clientWidth / 2;
-  let lastY = gl.canvas.clientHeight  / 2;
+  let lastX = canvas.clientWidth / 2;
+  let lastY = canvas.clientHeight / 2;
+  let lastFrame = 0;
 
-  let cameraPos = vec3.fromValues(0, 0, 313);
-  let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
-  let cameraUp = vec3.fromValues(0, 1, 0);
+
+
+  document.addEventListener("keydown", e => {
+    keyPressed.add(e.key.toLocaleLowerCase());
+  });
+
+  document.addEventListener("keyup", e => {
+    keyPressed.delete(e.key.toLocaleLowerCase());
+  });
 
   canvas.addEventListener("click", async () => {
     if (!document.pointerLockElement) {
@@ -49,16 +65,18 @@ async function main() {
     if (document.pointerLockElement === canvas) {
       console.log("The pointer lock status is now locked");
       document.addEventListener("mousemove", mouseMovement, false);
+      movement = true;
     } else {
       console.log("The pointer lock status is now unlocked");
       document.removeEventListener("mousemove", mouseMovement, false);
+      movement = false;
     }
   }
 
   function mouseMovement(e) {
     const xpos = e.movementX;
     const ypos = e.movementY;
-    console.log(`Mouse en: X: ${xpos}, Y: ${ypos}`);
+    // console.log(`Mouse en: X: ${xpos}, Y: ${ypos}`);
 
     if (firstMouse) {
       lastX = xpos;
@@ -86,13 +104,13 @@ async function main() {
     direction[1] = Math.sin(m4.degToRad(pitch));
     direction[2] = Math.sin(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
     vec3.normalize(cameraFront, direction);
-    cameraFront  = direction;
 
-    console.log("Camera Front: ", cameraFront[0], cameraFront[1], cameraFront[2]);
-    console.log("_Pitch:", pitch);
-    console.log("_Yaw:", yaw);
+    // console.log("Camera Front: ", cameraFront[0], cameraFront[1], cameraFront[2]);
+    // console.log("_Pitch:", pitch);
+    // console.log("_Yaw:", yaw);
   
   };
+
 
   const vertexShader = await utils.createShader(
     gl,
@@ -172,17 +190,20 @@ async function main() {
     offset,
   );
 
-  
-
-  utils.processInput(cameraPos, cameraFront, cameraUp, canvas);
-
   requestAnimationFrame(drawScene);
 
   let currentDirection = vec3.create();
 
   // Draw the scene.
-  function drawScene() {
+  function drawScene(now) {
+    now *= 0.01;
+    let deltaTime = now - lastFrame;
+    lastFrame = now;
+
+    // console.log("deltatime: ", deltaTime);
+    ProcessMovement(deltaTime);
     utils.resizeCanvasToDisplaySize(gl.canvas);
+    // utils.processInput(cameraPos, cameraFront, cameraUp, deltaTime);
 
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -206,12 +227,14 @@ async function main() {
     let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 
     let view = mat4.create();
+    
     vec3.add(currentDirection, cameraPos, cameraFront);
     view = mat4.lookAt(view, cameraPos, currentDirection, cameraUp);
     gl.uniformMatrix4fv(viewLocation, false, view);
     dx.textContent = cameraPos[0].toFixed(2);
     dy.textContent = cameraPos[1].toFixed(2);
     dz.textContent = cameraPos[2].toFixed(2);
+    delta.textContent = deltaTime;
 
     let projection = mat4.create();
     projection = mat4.perspective(
@@ -226,6 +249,7 @@ async function main() {
     let fModel = mat4.create();
     fModel = mat4.translate(fModel, fModel, [0, 0, 0]);
     fModel = mat4.scale(fModel, fModel, [1, 1, 1]);
+    fModel = mat4.rotateX(fModel, fModel, m4.degToRad(deltaTime * 1.2));
 
     gl.uniformMatrix4fv(modelLocation, false, fModel);
 

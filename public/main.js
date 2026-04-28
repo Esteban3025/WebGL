@@ -1,7 +1,18 @@
+/*
+
+░██╗░░░░░░░██╗███████╗██████╗░░██████╗░██╗░░░░░
+░██║░░██╗░░██║██╔════╝██╔══██╗██╔════╝░██║░░░░░
+░╚██╗████╗██╔╝█████╗░░██████╦╝██║░░██╗░██║░░░░░
+░░████╔═████║░██╔══╝░░██╔══██╗██║░░╚██╗██║░░░░░
+░░╚██╔╝░╚██╔╝░███████╗██████╦╝╚██████╔╝███████╗
+░░░╚═╝░░░╚═╝░░╚══════╝╚═════╝░░╚═════╝░╚══════╝
+
+*/
+
 import { WebGL2Utils } from "./utils/WebGLUtils.js";
 import { m4 } from "./utils/Math.js";
 import { mat4, vec3 } from "./dist/esm/index.js";
-import { ProcessMovement } from "./input.js";
+import { ProcessMovement } from "./movement.js";
 
 const utils = new WebGL2Utils();
 
@@ -31,8 +42,6 @@ async function main() {
   let lastX = canvas.clientWidth / 2;
   let lastY = canvas.clientHeight / 2;
   let lastFrame = 0;
-
-
 
   document.addEventListener("keydown", e => {
     keyPressed.add(e.key.toLocaleLowerCase());
@@ -127,12 +136,15 @@ async function main() {
 
   // look up where the vertex data needs to go.
   let positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-  let colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+  // let colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+  let normalAttributeLocation = gl.getAttribLocation(program, "a_normal");
 
   // look up uniform locations
   let modelLocation = gl.getUniformLocation(program, "model");
   let viewLocation = gl.getUniformLocation(program, "view");
   let projectionLocation = gl.getUniformLocation(program, "projection");
+  let colorLocation = gl.getUniformLocation(program, "u_color");
+  let lightDirectionReversed = gl.getUniformLocation(program, "u_reverseLightDirection");
 
   // Create a buffer
   var positionBuffer = gl.createBuffer();
@@ -152,43 +164,26 @@ async function main() {
   setGeometry(gl);
 
   // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-  let size = 3; // 3 components per iteration
-  let type = gl.FLOAT; // the data is 32bit floats
-  let normalize = false; // don't normalize the data
-  let stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
-  let offset = 0; // start at the beginning of the buffer
   gl.vertexAttribPointer(
     positionAttributeLocation,
-    size,
-    type,
-    normalize,
-    stride,
-    offset,
+    3,
+    gl.FLOAT,
+    false,
+    0,
+    0,
   );
 
   // create the color buffer, make it the current ARRAY_BUFFER
   // and copy in the color values
-  var colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  setColors(gl);
-
+  let normalBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
   // Turn on the attribute
-  gl.enableVertexAttribArray(colorAttributeLocation);
-
-  // Tell the attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-  size = 3; // 3 components per iteration
-  type = gl.UNSIGNED_BYTE; // the data is 8bit unsigned bytes
-  normalize = true; // convert from 0-255 to 0.0-1.0
-  stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next color
-  offset = 0; // start at the beginning of the buffer
+  gl.enableVertexAttribArray(normalAttributeLocation);
+  setNormals(gl);
   gl.vertexAttribPointer(
-    colorAttributeLocation,
-    size,
-    type,
-    normalize,
-    stride,
-    offset,
+    normalAttributeLocation, 3, gl.FLOAT, false, 0, 0,
   );
+  
 
   requestAnimationFrame(drawScene);
 
@@ -201,7 +196,7 @@ async function main() {
     lastFrame = now;
 
     // console.log("deltatime: ", deltaTime);
-    ProcessMovement(deltaTime);
+    ProcessMovement(deltaTime); // Esto es la funcion principal del movimiento
     utils.resizeCanvasToDisplaySize(gl.canvas);
     // utils.processInput(cameraPos, cameraFront, cameraUp, deltaTime);
 
@@ -242,14 +237,18 @@ async function main() {
       m4.degToRad(45),
       aspect,
       1,
-      10000,
+    10000
     );
     gl.uniformMatrix4fv(projectionLocation, false, projection);
+
+    gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]);
+    gl.uniform3fv(lightDirectionReversed, m4.normalize([0.5, 0.7, 1]));
+    //gl.uniformMatrix3fv(lightDirectionReversed, false, m4.normalize([0.5, 0.7, 1])); 
 
     let fModel = mat4.create();
     fModel = mat4.translate(fModel, fModel, [0, 0, 0]);
     fModel = mat4.scale(fModel, fModel, [1, 1, 1]);
-    fModel = mat4.rotateX(fModel, fModel, m4.degToRad(deltaTime * 1.2));
+    // fModel = mat4.rotateY(fModel, fModel, m4.degToRad(now * 10));
 
     gl.uniformMatrix4fv(modelLocation, false, fModel);
 
@@ -412,6 +411,139 @@ function setColors(gl) {
     ]),
     gl.STATIC_DRAW,
   );
+}
+
+function setNormals(gl) {
+  let normals = new Float32Array([
+          // left column front
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+ 
+          // top rung front
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+ 
+          // middle rung front
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+          0, 0, 1,
+ 
+          // left column back
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+ 
+          // top rung back
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+ 
+          // middle rung back
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+          0, 0, -1,
+ 
+          // top
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+ 
+          // top rung right
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+ 
+          // under top rung
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+ 
+          // between top rung and middle
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+ 
+          // top of middle rung
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+          0, 1, 0,
+ 
+          // right of middle rung
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+ 
+          // bottom of middle rung.
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+ 
+          // right of bottom
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+          1, 0, 0,
+ 
+          // bottom
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+ 
+          // left side
+          -1, 0, 0,
+          -1, 0, 0,
+          -1, 0, 0,
+          -1, 0, 0,
+          -1, 0, 0,
+          -1, 0, 0,
+  ]);
+  gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
 }
 
 main();

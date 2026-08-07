@@ -3,7 +3,6 @@ import { m4 } from "./Math.js";
 
 export class WebGL2Utils {
   async createShader(gl, type, path) {
-    // ESTO ES UNA FUNCION ASINCRONA, LLAMA A LA FUNCION SIEMPRE CON UN WAIT.
     const res = await fetch(path);
     const source = await res.text();
     const shader = gl.createShader(type);
@@ -43,8 +42,7 @@ export class WebGL2Utils {
     const displayHeight = canvas.clientHeight;
 
     // Check if the canvas is not the same size.
-    const needResize =
-      canvas.width !== displayWidth || canvas.height !== displayHeight;
+    const needResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
 
     if (needResize) {
       // Make the canvas the same size

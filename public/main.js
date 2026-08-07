@@ -13,6 +13,7 @@ import { WebGL2Utils } from "./utils/WebGLUtils.js";
 import { m4 } from "./utils/Math.js";
 import { mat4, vec3 } from "./dist/esm/index.js";
 import { ProcessMovement } from "./movement.js";
+import { CreateObject } from "./utils/lib/CreateObject.js";
 
 const utils = new WebGL2Utils();
 
@@ -22,6 +23,13 @@ export let cameraUp = vec3.fromValues(0, 1, 0);
 export let cameraSpeed = 5.0;
 export let keyPressed = new Set();
 export let movement = false; // Evitar el movimiento antes de capturar el mouse
+export const light = {
+  x: 0.5,
+  y: 0.7,
+  z: 1
+};
+
+// m4.normalize([0.5, 0.7, 1]
 
 async function main() {
   // Get A WebGL context  let movement = false;
@@ -31,6 +39,9 @@ async function main() {
   let dy = document.getElementById("y");
   let dz = document.getElementById("z");
   let delta = document.getElementById("deltatime");
+  let lightx = document.getElementById("lightx");
+  let lighty = document.getElementById("lighty");
+  let lightz = document.getElementById("lightz");
   let gl = canvas.getContext("webgl2");
   if (!gl) {
     return;
@@ -44,6 +55,7 @@ async function main() {
   let lastFrame = 0;
 
   document.addEventListener("keydown", e => {
+    console.log("Esta tecla se esta tocando: ", e.key.toLocaleLowerCase());
     keyPressed.add(e.key.toLocaleLowerCase());
   });
 
@@ -132,19 +144,56 @@ async function main() {
     "shaders/main.fs",
   );
 
-  const program = utils.createProgram(gl, vertexShader, fragmentShader);
+  const vertexShader2 = await utils.createShader(
+    gl,
+    gl.VERTEX_SHADER,
+    "shaders/triangle.vs",
+  );
+  const fragmentShader2 = await utils.createShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    "shaders/triangle.fs",
+  );
 
-  // look up where the vertex data needs to go.
-  let positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-  // let colorAttributeLocation = gl.getAttribLocation(program, "a_color");
-  let normalAttributeLocation = gl.getAttribLocation(program, "a_normal");
+  const vertexShader3 = await utils.createShader(
+    gl,
+    gl.VERTEX_SHADER,
+    "shaders/triangle.vs",
+  );
+  const fragmentShader3 = await utils.createShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    "shaders/triangle.fs",
+  );
+
 
   // look up uniform locations
+  /// fff
+  const program = utils.createProgram(gl, vertexShader, fragmentShader);
+  // look up where the vertex data needs to go.
+  let positionAttributeLocation = gl.getAttribLocation(program, "a_position");  
+  let normalAttributeLocation = gl.getAttribLocation(program, "a_normal");
+
   let modelLocation = gl.getUniformLocation(program, "model");
   let viewLocation = gl.getUniformLocation(program, "view");
   let projectionLocation = gl.getUniformLocation(program, "projection");
+
   let colorLocation = gl.getUniformLocation(program, "u_color");
   let lightDirectionReversed = gl.getUniformLocation(program, "u_reverseLightDirection");
+
+  // triangle
+  const program2 =          utils.createProgram(gl, vertexShader2, fragmentShader2);
+  let positionTriangle =    gl.getAttribLocation(program2, "a_position");  
+  let modelLocation2 =      gl.getUniformLocation(program2, "model");
+  let viewLocation2 =       gl.getUniformLocation(program2, "view");
+  let projectionLocation2 = gl.getUniformLocation(program2, "projection");
+
+  //floor 
+  const program3 =          utils.createProgram(gl, vertexShader3, fragmentShader3);
+  let positionFloor =    gl.getAttribLocation(program3, "a_position");  
+  let modelLocation3 =      gl.getUniformLocation(program3, "model");
+  let viewLocation3 =       gl.getUniformLocation(program3, "view");
+  let projectionLocation3 = gl.getUniformLocation(program3, "projection");
 
   // Create a buffer
   var positionBuffer = gl.createBuffer();
@@ -183,7 +232,22 @@ async function main() {
   gl.vertexAttribPointer(
     normalAttributeLocation, 3, gl.FLOAT, false, 0, 0,
   );
-  
+
+  const geometriaTriangulo = [
+     0.0,  0.5, 0.0, // Vértice superior
+    -0.5, -0.5, 0.0, // Vértice inferior izquierdo
+     0.5, -0.5, 0.0  // Vértice inferior derecho
+  ]
+
+  const geometriaFloor = [
+     0.5,  0.5,  0.0,
+    -0.5,  0.5,  0.0,
+     0.5, -0.5,  0.0,
+    -0.5, -0.5,  0.0
+  ]
+
+  const triangulo = new CreateObject(gl, positionTriangle, geometriaTriangulo, 3);
+  const floor = new CreateObject(gl, positionFloor, geometriaFloor, 4);
 
   requestAnimationFrame(drawScene);
 
@@ -211,7 +275,7 @@ async function main() {
     gl.enable(gl.DEPTH_TEST);
 
     // tell webgl to cull faces
-    gl.enable(gl.CULL_FACE);
+    //gl.enable(gl.CULL_FACE);
 
     // Tell it to use our program (pair of shaders)
     gl.useProgram(program);
@@ -230,6 +294,9 @@ async function main() {
     dy.textContent = cameraPos[1].toFixed(2);
     dz.textContent = cameraPos[2].toFixed(2);
     delta.textContent = deltaTime;
+    lightx.textContent = light.x;
+    lighty.textContent = light.y;
+    lightz.textContent = light.z;
 
     let projection = mat4.create();
     projection = mat4.perspective(
@@ -242,13 +309,12 @@ async function main() {
     gl.uniformMatrix4fv(projectionLocation, false, projection);
 
     gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]);
-    gl.uniform3fv(lightDirectionReversed, m4.normalize([0.5, 0.7, 1]));
+    gl.uniform3fv(lightDirectionReversed, m4.normalize([light.x, light.y, light.z]));
     //gl.uniformMatrix3fv(lightDirectionReversed, false, m4.normalize([0.5, 0.7, 1])); 
 
     let fModel = mat4.create();
     fModel = mat4.translate(fModel, fModel, [0, 0, 0]);
     fModel = mat4.scale(fModel, fModel, [1, 1, 1]);
-    // fModel = mat4.rotateY(fModel, fModel, m4.degToRad(now * 10));
 
     gl.uniformMatrix4fv(modelLocation, false, fModel);
 
@@ -257,6 +323,30 @@ async function main() {
     let offset = 0;
     let count = 16 * 6;
     gl.drawArrays(primitiveType, offset, count);
+
+    gl.useProgram(program2);
+    let fModel2 = mat4.create();
+    fModel2 = mat4.translate(fModel2, fModel2, [light.x, light.y, light.z]);
+    fModel2 = mat4.scale(fModel2, fModel2, [50, 50, 50]);
+
+    gl.uniformMatrix4fv(viewLocation2, false, view);
+    gl.uniformMatrix4fv(projectionLocation2, false, projection);
+    gl.uniformMatrix4fv(modelLocation2, false, fModel2);
+
+    triangulo.draw(gl.TRIANGLES);
+
+    // floor
+    gl.useProgram(program3);
+    let fModel3 = mat4.create();
+    fModel3 = mat4.translate(fModel3, fModel3, [0, 0, 0]);
+    fModel3 = mat4.scale(fModel3, fModel3, [500, 500, 500]);
+    fModel3 = mat4.rotateX(fModel3, fModel3, m4.degToRad(90));
+
+    gl.uniformMatrix4fv(viewLocation3, false, view);
+    gl.uniformMatrix4fv(projectionLocation3, false, projection);
+    gl.uniformMatrix4fv(modelLocation3, false, fModel3);
+
+    floor.draw(gl.TRIANGLE_STRIP);
 
     requestAnimationFrame(drawScene);
   }

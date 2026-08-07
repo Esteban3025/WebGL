@@ -1,4 +1,4 @@
-import { cameraSpeed, cameraFront, cameraPos, cameraUp, keyPressed, movement } from "./main.js";
+import { cameraSpeed, cameraFront, cameraPos, cameraUp, keyPressed, movement, light } from "./main.js";
 import { mat4, vec3 } from "./dist/esm/index.js";
 
 export function ProcessMovement(deltaTime) {
@@ -7,6 +7,8 @@ export function ProcessMovement(deltaTime) {
   if (!movement) return;
 
   console.log("keyPressed", keyPressed);
+  if (keyPressed.has("shift"))
+    speed *= 3; 
 
   if (keyPressed.has("w"))
     vec3.scaleAndAdd(cameraPos, cameraPos, cameraFront, +speed);
@@ -28,5 +30,33 @@ export function ProcessMovement(deltaTime) {
     vec3.scaleAndAdd(cameraPos, cameraPos, rightVector, -speed);
   }
 
-  cameraPos[1] = 0.0;
+  if (keyPressed.has("arrowup")) {
+    light.z -= 1 * deltaTime;
+  }
+
+  if (keyPressed.has("arrowdown")) {
+    light.z += 1 * deltaTime;
+  }
+
+  if (keyPressed.has("arrowright")) {
+    light.x+= 1 * deltaTime;
+  }
+
+  if (keyPressed.has("arrowleft")) {
+    light.x-= 1 *deltaTime;
+  }
+
+  if (keyPressed.has("arrowup") && keyPressed.has("control")) {
+    light.y+= 1 * deltaTime;
+  }
+
+  if (keyPressed.has("arrowdown") && keyPressed.has("control")) {
+    light.y -= 1 *deltaTime;
+  }
+
+  if (keyPressed.has("space")) {
+    cameraPos[1] += 1.0;;
+  }
+
+  //cameraPos[1] = 0.0;
 }

@@ -4,22 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebGl2 Test</title>
-  <style>
-    body {
-      margin: 0;
-    }
-    
-    canvas {
-      display: block;  /* prevents scrollbar */
-      width: 100vw;
-      height: 100vh;
-    }
-    #uiContainer{
-      position: absolute;
-      top: 0;
-      left: 85rem;
-    }
-  </style>
+  <link rel="stylesheet" href="base.css">
 </head>
 <body>
    <canvas id="c"></canvas>
@@ -30,8 +15,11 @@
         <p id="posy">Y: <span id="y"></span></p>
         <p id="posz">Z: <span id="z"></span></p>
         <p>DeltaTime: <span id="deltatime"></span></p>
+        <p>Lights Positions: </p>
+        <p id="lightposx">X: <span id="lightx"></span></p>
+        <p id="lightposy">Y: <span id="lighty"></span></p>
+        <p id="lightposz">Z: <span id="lightz"></span></p>
       </div>
-    </div>
    <script type="module" src="main.js"></script>
    <script src="./dist/gl-matrix-min.js"></script>
    <script src="./dist/gl-matrix.js"></script>

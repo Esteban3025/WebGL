@@ -1,0 +1,17 @@
+body {
+  margin: 0;
+   overflow: hidden;
+}
+
+canvas {
+  display: block;
+  /* prevents scrollbar */
+  width: 100vw;
+  height: 100vh;
+}
+
+#uiContainer {
+  position: absolute;
+  top: 0;
+  left: 85rem;
+}

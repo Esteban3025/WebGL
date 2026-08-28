@@ -1,20 +1,36 @@
-import { cameraSpeed, cameraFront, cameraPos, cameraUp, keyPressed, movement, light } from "./main.js";
-import { mat4, vec3 } from "./dist/esm/index.js";
+import {cameraFront, cameraPos, cameraUp, light } from "./utils/lib/constants.js";
+import { vec3 } from "./dist/esm/index.js";
+import { movement, keyPressed } from "./utils/lib/checkInput.js";
+
+/**
+ * @param {cameraPos[1] = 0.0}; esto mantiene la propiedad Y de la camara a cero
+ */
 
 export function ProcessMovement(deltaTime) {
+  let cameraSpeed = 10.0 * 5.0;
   let speed = cameraSpeed * deltaTime;
 
   if (!movement) return;
 
-  console.log("keyPressed", keyPressed);
+  // console.log("keyPressed", keyPressed);
   if (keyPressed.has("shift"))
-    speed *= 3; 
+    speed *= 2; 
 
-  if (keyPressed.has("w"))
+  if (keyPressed.has("w")){
     vec3.scaleAndAdd(cameraPos, cameraPos, cameraFront, +speed);
+  }
 
-  if (keyPressed.has("s"))
+  if (keyPressed.has("s")) {
     vec3.scaleAndAdd(cameraPos, cameraPos, cameraFront, -speed);
+  }
+
+  if (keyPressed.has(' ')) {
+    cameraPos[1] += speed;
+  }
+
+  if (keyPressed.has('c')) {
+    cameraPos[1] -= speed;
+  }
 
   if (keyPressed.has("d")) {
     let fd = vec3.create();
@@ -54,9 +70,5 @@ export function ProcessMovement(deltaTime) {
     light.y -= 1 *deltaTime;
   }
 
-  if (keyPressed.has("space")) {
-    cameraPos[1] += 1.0;;
-  }
-
-  //cameraPos[1] = 0.0;
+  cameraPos[1] = 0.0
 }

@@ -1,3 +1,3 @@
 @echo off 
-code . && start http://localhost:3000 && npm run dev
+code . && npm run dev && start http://localhost:3000 && 
 pause

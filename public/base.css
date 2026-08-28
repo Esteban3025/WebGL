@@ -15,3 +15,14 @@ canvas {
   top: 0;
   left: 85rem;
 }
+
+#fpscontainer {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  color: black;
+}
+
+#a {
+  background-image: url('res/keef.jpg');
+}

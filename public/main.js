@@ -11,29 +11,35 @@
 
 import { WebGL2Utils } from "./utils/WebGLUtils.js";
 import { m4 } from "./utils/Math.js";
-import { mat4, vec3 } from "./dist/esm/index.js";
 import { ProcessMovement } from "./movement.js";
-import { CreateObject } from "./utils/lib/CreateObject.js";
+import { CreateObject, loadShader } from "./utils/lib/CreateObject.js";
+import { light,cameraPos} from "./utils/lib/constants.js"; 
+import { checkInput } from "./utils/lib/checkInput.js";
 
 const utils = new WebGL2Utils();
 
-export let cameraPos = vec3.fromValues(0, 0, 313);
-export let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
-export let cameraUp = vec3.fromValues(0, 1, 0);
-export let cameraSpeed = 5.0;
-export let keyPressed = new Set();
-export let movement = false; // Evitar el movimiento antes de capturar el mouse
-export const light = {
-  x: 0.5,
-  y: 0.7,
-  z: 1
+export let models = {
+  floor: {
+    translate: [0, -60.0, 0],
+    scale: [500, 500, 500],
+    deg: 90,
+    color: {r: 1, g:0, b:0}
+  },
+  triangle: {
+    translate: [light.x, light.y, light.z],
+    scale: [50, 50, 50],
+    deg: 0,
+    color: {r: 1, g:0, b:1}
+  },
+  f: {
+    translate: [-30, 0, 0],
+    scale: [1, 1, 1],
+    deg: 0,
+    color: {r: 1, g:0, b:0}
+  }
 };
 
-// m4.normalize([0.5, 0.7, 1]
-
 async function main() {
-  // Get A WebGL context  let movement = false;
-  /** @type {HTMLCanvasElement} */
   let canvas = document.querySelector("#c");
   let dx = document.getElementById("x");
   let dy = document.getElementById("y");
@@ -42,196 +48,15 @@ async function main() {
   let lightx = document.getElementById("lightx");
   let lighty = document.getElementById("lighty");
   let lightz = document.getElementById("lightz");
+  let fpscontainer = document.getElementById("fpscontainer");
+  let lastFrame = 0;
+
   let gl = canvas.getContext("webgl2");
   if (!gl) {
     return;
   }
 
-  let firstMouse = true;
-  let yaw = -90; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-  let pitch = 0;
-  let lastX = canvas.clientWidth / 2;
-  let lastY = canvas.clientHeight / 2;
-  let lastFrame = 0;
-
-  document.addEventListener("keydown", e => {
-    console.log("Esta tecla se esta tocando: ", e.key.toLocaleLowerCase());
-    keyPressed.add(e.key.toLocaleLowerCase());
-  });
-
-  document.addEventListener("keyup", e => {
-    keyPressed.delete(e.key.toLocaleLowerCase());
-  });
-
-  canvas.addEventListener("click", async () => {
-    if (!document.pointerLockElement) {
-      try {
-        await canvas.requestPointerLock({
-          unadjustedMovement: true,
-        });
-      } catch (error) {
-        if (error.name === "NotSupportedError") {
-          // Some platforms may not support unadjusted movement.
-          await canvas.requestPointerLock();
-        } else {
-          throw error;
-        }
-      }
-    }
-  });
-
-  document.addEventListener("pointerlockchange", lockChangeAlert, false);
-
-  function lockChangeAlert() {
-    if (document.pointerLockElement === canvas) {
-      console.log("The pointer lock status is now locked");
-      document.addEventListener("mousemove", mouseMovement, false);
-      movement = true;
-    } else {
-      console.log("The pointer lock status is now unlocked");
-      document.removeEventListener("mousemove", mouseMovement, false);
-      movement = false;
-    }
-  }
-
-  function mouseMovement(e) {
-    const xpos = e.movementX;
-    const ypos = e.movementY;
-    // console.log(`Mouse en: X: ${xpos}, Y: ${ypos}`);
-
-    if (firstMouse) {
-      lastX = xpos;
-      lastY = ypos;
-      firstMouse = false;
-    }
-
-    let xoffset = e.movementX;
-    let yoffset = -e.movementY;
-    lastX = xpos;
-    lastY = ypos;
-
-    const sensitivity = 0.1;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    yaw += xoffset;
-    pitch += yoffset;
-
-    if (pitch > 89) pitch = 89;
-    if (pitch < -89) pitch = -89;
-
-    let direction = vec3.create();
-    direction[0] = Math.cos(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
-    direction[1] = Math.sin(m4.degToRad(pitch));
-    direction[2] = Math.sin(m4.degToRad(yaw)) * Math.cos(m4.degToRad(pitch));
-    vec3.normalize(cameraFront, direction);
-
-    // console.log("Camera Front: ", cameraFront[0], cameraFront[1], cameraFront[2]);
-    // console.log("_Pitch:", pitch);
-    // console.log("_Yaw:", yaw);
-  
-  };
-
-
-  const vertexShader = await utils.createShader(
-    gl,
-    gl.VERTEX_SHADER,
-    "shaders/main.vs",
-  );
-  const fragmentShader = await utils.createShader(
-    gl,
-    gl.FRAGMENT_SHADER,
-    "shaders/main.fs",
-  );
-
-  const vertexShader2 = await utils.createShader(
-    gl,
-    gl.VERTEX_SHADER,
-    "shaders/triangle.vs",
-  );
-  const fragmentShader2 = await utils.createShader(
-    gl,
-    gl.FRAGMENT_SHADER,
-    "shaders/triangle.fs",
-  );
-
-  const vertexShader3 = await utils.createShader(
-    gl,
-    gl.VERTEX_SHADER,
-    "shaders/triangle.vs",
-  );
-  const fragmentShader3 = await utils.createShader(
-    gl,
-    gl.FRAGMENT_SHADER,
-    "shaders/triangle.fs",
-  );
-
-
-  // look up uniform locations
-  /// fff
-  const program = utils.createProgram(gl, vertexShader, fragmentShader);
-  // look up where the vertex data needs to go.
-  let positionAttributeLocation = gl.getAttribLocation(program, "a_position");  
-  let normalAttributeLocation = gl.getAttribLocation(program, "a_normal");
-
-  let modelLocation = gl.getUniformLocation(program, "model");
-  let viewLocation = gl.getUniformLocation(program, "view");
-  let projectionLocation = gl.getUniformLocation(program, "projection");
-
-  let colorLocation = gl.getUniformLocation(program, "u_color");
-  let lightDirectionReversed = gl.getUniformLocation(program, "u_reverseLightDirection");
-
-  // triangle
-  const program2 =          utils.createProgram(gl, vertexShader2, fragmentShader2);
-  let positionTriangle =    gl.getAttribLocation(program2, "a_position");  
-  let modelLocation2 =      gl.getUniformLocation(program2, "model");
-  let viewLocation2 =       gl.getUniformLocation(program2, "view");
-  let projectionLocation2 = gl.getUniformLocation(program2, "projection");
-
-  //floor 
-  const program3 =          utils.createProgram(gl, vertexShader3, fragmentShader3);
-  let positionFloor =    gl.getAttribLocation(program3, "a_position");  
-  let modelLocation3 =      gl.getUniformLocation(program3, "model");
-  let viewLocation3 =       gl.getUniformLocation(program3, "view");
-  let projectionLocation3 = gl.getUniformLocation(program3, "projection");
-
-  // Create a buffer
-  var positionBuffer = gl.createBuffer();
-
-  // Create a vertex array object (attribute state)
-  var vao = gl.createVertexArray();
-
-  // and make it the one we're currently working with
-  gl.bindVertexArray(vao);
-
-  // Turn on the attribute
-  gl.enableVertexAttribArray(positionAttributeLocation);
-
-  // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  // Set Geometry.
-  setGeometry(gl);
-
-  // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-  gl.vertexAttribPointer(
-    positionAttributeLocation,
-    3,
-    gl.FLOAT,
-    false,
-    0,
-    0,
-  );
-
-  // create the color buffer, make it the current ARRAY_BUFFER
-  // and copy in the color values
-  let normalBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-  // Turn on the attribute
-  gl.enableVertexAttribArray(normalAttributeLocation);
-  setNormals(gl);
-  gl.vertexAttribPointer(
-    normalAttributeLocation, 3, gl.FLOAT, false, 0, 0,
-  );
+  checkInput(canvas);
 
   const geometriaTriangulo = [
      0.0,  0.5, 0.0, // Vértice superior
@@ -246,23 +71,35 @@ async function main() {
     -0.5, -0.5,  0.0
   ]
 
-  const triangulo = new CreateObject(gl, positionTriangle, geometriaTriangulo, 3);
-  const floor = new CreateObject(gl, positionFloor, geometriaFloor, 4);
+  const numVertexTriangle=3;
+  const numVertexFloor=4;
+
+  const triangulo = new CreateObject(gl, geometriaTriangulo, numVertexTriangle, models.triangle);
+  const triangleVertexShader = await loadShader("triangle.vs");
+  const triangleFragmentShader = await loadShader("triangle.fs");
+  triangulo._setProgram(triangleVertexShader, triangleFragmentShader);
+
+  const floor     = new CreateObject(gl, geometriaFloor,     numVertexFloor,    models.floor);
+  const floorVertexShader = await loadShader("triangle.vs");
+  const floorFragmentShader = await loadShader("triangle.fs");
+  floor._setProgram(floorVertexShader, floorFragmentShader);
+
 
   requestAnimationFrame(drawScene);
 
-  let currentDirection = vec3.create();
+  // ---- FPS ----
+  let fpsFrames = 0;
+  let fpsTime = 0;
 
   // Draw the scene.
   function drawScene(now) {
-    now *= 0.01;
-    let deltaTime = now - lastFrame;
+    // now *= 0.01;
+    let deltaTime = (now - lastFrame) / 1000;
     lastFrame = now;
 
     // console.log("deltatime: ", deltaTime);
     ProcessMovement(deltaTime); // Esto es la funcion principal del movimiento
     utils.resizeCanvasToDisplaySize(gl.canvas);
-    // utils.processInput(cameraPos, cameraFront, cameraUp, deltaTime);
 
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -277,19 +114,6 @@ async function main() {
     // tell webgl to cull faces
     //gl.enable(gl.CULL_FACE);
 
-    // Tell it to use our program (pair of shaders)
-    gl.useProgram(program);
-
-    // Bind the attribute/buffer set we want.
-    gl.bindVertexArray(vao);
-
-    let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-
-    let view = mat4.create();
-    
-    vec3.add(currentDirection, cameraPos, cameraFront);
-    view = mat4.lookAt(view, cameraPos, currentDirection, cameraUp);
-    gl.uniformMatrix4fv(viewLocation, false, view);
     dx.textContent = cameraPos[0].toFixed(2);
     dy.textContent = cameraPos[1].toFixed(2);
     dz.textContent = cameraPos[2].toFixed(2);
@@ -298,55 +122,17 @@ async function main() {
     lighty.textContent = light.y;
     lightz.textContent = light.z;
 
-    let projection = mat4.create();
-    projection = mat4.perspective(
-      projection,
-      m4.degToRad(45),
-      aspect,
-      1,
-    10000
-    );
-    gl.uniformMatrix4fv(projectionLocation, false, projection);
-
-    gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]);
-    gl.uniform3fv(lightDirectionReversed, m4.normalize([light.x, light.y, light.z]));
-    //gl.uniformMatrix3fv(lightDirectionReversed, false, m4.normalize([0.5, 0.7, 1])); 
-
-    let fModel = mat4.create();
-    fModel = mat4.translate(fModel, fModel, [0, 0, 0]);
-    fModel = mat4.scale(fModel, fModel, [1, 1, 1]);
-
-    gl.uniformMatrix4fv(modelLocation, false, fModel);
-
-    // Draw the geometry.
-    let primitiveType = gl.TRIANGLES;
-    let offset = 0;
-    let count = 16 * 6;
-    gl.drawArrays(primitiveType, offset, count);
-
-    gl.useProgram(program2);
-    let fModel2 = mat4.create();
-    fModel2 = mat4.translate(fModel2, fModel2, [light.x, light.y, light.z]);
-    fModel2 = mat4.scale(fModel2, fModel2, [50, 50, 50]);
-
-    gl.uniformMatrix4fv(viewLocation2, false, view);
-    gl.uniformMatrix4fv(projectionLocation2, false, projection);
-    gl.uniformMatrix4fv(modelLocation2, false, fModel2);
-
-    triangulo.draw(gl.TRIANGLES);
-
-    // floor
-    gl.useProgram(program3);
-    let fModel3 = mat4.create();
-    fModel3 = mat4.translate(fModel3, fModel3, [0, 0, 0]);
-    fModel3 = mat4.scale(fModel3, fModel3, [500, 500, 500]);
-    fModel3 = mat4.rotateX(fModel3, fModel3, m4.degToRad(90));
-
-    gl.uniformMatrix4fv(viewLocation3, false, view);
-    gl.uniformMatrix4fv(projectionLocation3, false, projection);
-    gl.uniformMatrix4fv(modelLocation3, false, fModel3);
-
     floor.draw(gl.TRIANGLE_STRIP);
+    triangulo.draw(gl.TRIANGLES);
+    
+
+    fpsFrames++;
+    fpsTime += deltaTime;
+    if (fpsTime >= 1) {
+      fpscontainer.textContent = "FPS: " + Math.round(fpsFrames / fpsTime);
+      fpsFrames = 0;
+      fpsTime = 0;
+    }
 
     requestAnimationFrame(drawScene);
   }

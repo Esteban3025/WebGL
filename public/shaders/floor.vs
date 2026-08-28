@@ -3,7 +3,6 @@
 // an attribute is an input (in) to a vertex shader.
 // It will receive data from a buffer
 in vec4 a_position;
-
 in vec2 a_texcoord;
 
 out vec2 v_texcoord;

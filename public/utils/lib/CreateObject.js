@@ -30,11 +30,31 @@ export class CreateObject {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.objectBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
+    this.textureBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.textureBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
     this.objectNormalBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this.objectNormalBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
 
     this._resize();
+  }
+
+  _createTexture(path) {
+    const gl = this.gl;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
+    const image = new Image();
+    image.src = `../../res/${path}`;
+    image.addEventListener('load', function() {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
+      gl.generateMipmap(gl.TEXTURE_2D);
+    });
   }
 
   _compileShader(type, source) {
@@ -80,17 +100,22 @@ export class CreateObject {
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 
+    const texLoc = gl.getAttribLocation(program, "a_texcoord");
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.textureBuffer);
+    gl.enableVertexAttribArray(texLoc);
+    gl.vertexAttribPointer(texLoc,2, gl.FLOAT, true, 0, 0);
+
     const normalLoc = gl.getAttribLocation(program, "a_normal");
     gl.bindBuffer(gl.ARRAY_BUFFER, this.objectNormalBuffer);
     gl.enableVertexAttribArray(normalLoc);
-    gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 3);
+    gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 6);
 
     this.uniformLocations = {
       model: gl.getUniformLocation(program, "model"),
       view: gl.getUniformLocation(program, "view"),
       projection: gl.getUniformLocation(program, "projection"),
       reverseLightDirection: gl.getUniformLocation(program, "u_reverseLightDirection"),
-      color: gl.getUniformLocation(program, "u_color")
+      color: gl.getUniformLocation(program, "u_color"),
     };
 
     console.log(gl.getProgramInfoLog(program));

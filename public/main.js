@@ -59,9 +59,10 @@ async function main() {
   checkInput(canvas);
 
   const geometriaTriangulo = [
-     0.0,  0.5, 0.0, // Vértice superior
-    -0.5, -0.5, 0.0, // Vértice inferior izquierdo
-     0.5, -0.5, 0.0  // Vértice inferior derecho
+     0.5,  0.5,  0.0,
+    -0.5,  0.5,  0.0,
+     0.5, -0.5,  0.0,
+    -0.5, -0.5,  0.0
   ]
 
   const geometriaFloor = [
@@ -71,17 +72,19 @@ async function main() {
     -0.5, -0.5,  0.0
   ]
 
-  const numVertexTriangle=3;
+  const numVertexTriangle=4;
   const numVertexFloor=4;
 
   const triangulo = new CreateObject(gl, geometriaTriangulo, numVertexTriangle, models.triangle);
+  triangulo._createTexture("descarga.jpg");
   const triangleVertexShader = await loadShader("triangle.vs");
   const triangleFragmentShader = await loadShader("triangle.fs");
   triangulo._setProgram(triangleVertexShader, triangleFragmentShader);
 
   const floor     = new CreateObject(gl, geometriaFloor,     numVertexFloor,    models.floor);
-  const floorVertexShader = await loadShader("triangle.vs");
-  const floorFragmentShader = await loadShader("triangle.fs");
+  floor._createTexture("descarga.jpg");
+  const floorVertexShader = await loadShader("floor.vs");
+  const floorFragmentShader = await loadShader("floor.fs");
   floor._setProgram(floorVertexShader, floorFragmentShader);
 
 
@@ -97,9 +100,8 @@ async function main() {
     let deltaTime = (now - lastFrame) / 1000;
     lastFrame = now;
 
-    // console.log("deltatime: ", deltaTime);
     ProcessMovement(deltaTime); // Esto es la funcion principal del movimiento
-    utils.resizeCanvasToDisplaySize(gl.canvas);
+    // utils.resizeCanvasToDisplaySize(gl.canvas);
 
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -123,8 +125,7 @@ async function main() {
     lightz.textContent = light.z;
 
     floor.draw(gl.TRIANGLE_STRIP);
-    triangulo.draw(gl.TRIANGLES);
-    
+    triangulo.draw(gl.TRIANGLE_STRIP);
 
     fpsFrames++;
     fpsTime += deltaTime;

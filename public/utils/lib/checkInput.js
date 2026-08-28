@@ -1,4 +1,5 @@
-import { renderMenu } from "../ui/menu.js";
+import { mainMenu } from "../ui/mainMenu.js";
+import { pauseMenu } from "../ui/pauseMenu.js";
 import { cameraFront } from "../lib/constants.js";
 import { vec3 } from "../../dist/esm/index.js";
 import { m4 } from "../Math.js";
@@ -10,7 +11,7 @@ let yaw = -90; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results
 let pitch = 0;
 
 export function checkInput(canvas) {
-  renderMenu();
+ //  mainMenu(); // Renderizar el menu es lo primero que hacemos
   document.addEventListener("keydown", (e) => {
     console.log("Esta tecla se esta tocando: ", e.key.toLocaleLowerCase());
     keyPressed.add(e.key.toLocaleLowerCase());
@@ -28,7 +29,6 @@ export function checkInput(canvas) {
         });
       } catch (error) {
         if (error.name === "NotSupportedError") {
-          // Some platforms may not support unadjusted movement.
           await canvas.requestPointerLock();
         } else {
           throw error;
@@ -48,7 +48,7 @@ export function checkInput(canvas) {
       console.log("The pointer lock status is now unlocked");
       document.removeEventListener("mousemove", mouseMovement, false);
       movement = false;
-      renderMenu();
+      // pauseMenu();
     }
   }
 

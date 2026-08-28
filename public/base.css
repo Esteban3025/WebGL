@@ -23,6 +23,115 @@ canvas {
   color: black;
 }
 
-#a {
-  background-image: url('res/keef.jpg');
+
+/* Main Menu */
+#menubtn {
+  width: 220px;
+  padding: 14px 18px;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  text-align: left;
+  cursor: pointer;
+  color: #c9d6e3;
+  background-color: transparent;
+  border: 1px solid rgba(201, 214, 227, 0.35);
+  border-radius: 2px;
+  transition: all 0.25s ease;
+}
+
+#menubtn:hover {
+  background-color: rgba(201, 214, 227, 0.08);
+  border-color: rgba(201, 214, 227, 0.85);
+  color: #ffffff;
+  letter-spacing: 0.08em;
+}
+
+#menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  gap: 1.4rem;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding-left: 9vw;
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  z-index: 9999;
+  color: #c9d6e3;
+  background-color: #0a0c12;
+  background-image:
+    linear-gradient(to right, rgba(5, 6, 10, 0.92) 25%, rgba(5, 6, 10, 0.55) 65%, rgba(5, 6, 10, 0.25) 100%),
+    url('res/descarga.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+#menu-title {
+  color: #eef2f6;
+  font-weight: 300;
+  font-size: 3.4rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-shadow: 0 0 22px rgba(150, 190, 220, 0.4), 0 0 3px rgba(210, 225, 240, 0.6);
+  margin-bottom: 0.5rem;
+}
+
+/* Pause Menu */
+#pausebtn {
+  width: 220px;
+  padding: 14px 18px;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  text-align: left;
+  cursor: pointer;
+  color: #c9d6e3;
+  background-color: transparent;
+  border: 1px solid rgba(201, 214, 227, 0.35);
+  border-radius: 2px;
+  transition: all 0.25s ease;
+}
+
+#pausebtn:hover {
+  background-color: rgba(201, 214, 227, 0.08);
+  border-color: rgba(201, 214, 227, 0.85);
+  color: #ffffff;
+  letter-spacing: 0.08em;
+}
+
+#pauseMenu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  gap: 1.4rem;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding-left: 9vw;
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  z-index: 9999;
+  color: #c9d6e3;
+  background-color: #0a0c12;
+  background-image:
+    linear-gradient(to right, rgba(5, 6, 10, 0.92) 25%, rgba(5, 6, 10, 0.55) 65%, rgba(5, 6, 10, 0.25) 100%),
+    url('res/descarga.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+#pause-title {
+  color: #eef2f6;
+  font-weight: 300;
+  font-size: 3.4rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-shadow: 0 0 22px rgba(150, 190, 220, 0.4), 0 0 3px rgba(210, 225, 240, 0.6);
+  margin-bottom: 0.5rem;
 }

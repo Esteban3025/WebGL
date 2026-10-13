@@ -48,7 +48,7 @@ export function checkInput(canvas) {
       console.log("The pointer lock status is now unlocked");
       document.removeEventListener("mousemove", mouseMovement, false);
       movement = false;
-      // pauseMenu();
+      pauseMenu();
     }
   }
 

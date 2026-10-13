@@ -23,6 +23,53 @@ canvas {
   color: black;
 }
 
+#menucontainer,
+#pausecontainer,
+#loadingcontainer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  color: #eef2f6;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  background: rgba(5, 8, 14, 0.76);
+}
+
+#menucontainer[hidden],
+#pausecontainer[hidden],
+#loadingcontainer[hidden] {
+  display: none;
+}
+
+.menu-panel {
+  display: grid;
+  gap: 1rem;
+  min-width: 240px;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid rgba(201, 214, 227, 0.35);
+  background: rgba(10, 12, 18, 0.86);
+  box-shadow: 0 0 28px rgba(0, 0, 0, 0.45);
+}
+
+.menu-panel h1,
+.menu-panel p {
+  margin: 0;
+}
+
+.menu-panel button {
+  padding: 0.8rem 1rem;
+  color: #eef2f6;
+  cursor: pointer;
+  border: 1px solid rgba(201, 214, 227, 0.5);
+  background: transparent;
+}
+
+.menu-panel button:hover {
+  background: rgba(201, 214, 227, 0.12);
+}
+
 
 /* Main Menu */
 #menubtn {

@@ -5,9 +5,9 @@ export let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de dire
 export let cameraUp = vec3.fromValues(0, 1, 0);
 export let currentDirection = vec3.create();
 export let light = {
-  x: 0.5,
+  x: 120,
   y: 0.7,
-  z: 1
+  z: 250
 };
 
 

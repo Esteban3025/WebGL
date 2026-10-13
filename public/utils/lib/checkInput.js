@@ -1,5 +1,3 @@
-import { mainMenu } from "../ui/mainMenu.js";
-import { pauseMenu } from "../ui/pauseMenu.js";
 import { cameraFront } from "../lib/constants.js";
 import { vec3 } from "../../dist/esm/index.js";
 import { m4 } from "../Math.js";
@@ -10,10 +8,8 @@ let firstMouse = true;
 let yaw = -90; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 let pitch = 0;
 
-export function checkInput(canvas) {
- //  mainMenu(); // Renderizar el menu es lo primero que hacemos
+export function checkInput(canvas, { onPause } = {}) {
   document.addEventListener("keydown", (e) => {
-    console.log("Esta tecla se esta tocando: ", e.key.toLocaleLowerCase());
     keyPressed.add(e.key.toLocaleLowerCase());
   });
 
@@ -41,14 +37,13 @@ export function checkInput(canvas) {
 
   function lockChangeAlert() {
     if (document.pointerLockElement === canvas) {
-      console.log("The pointer lock status is now locked");
       document.addEventListener("mousemove", mouseMovement, false);
       movement = true;
     } else {
       console.log("The pointer lock status is now unlocked");
       document.removeEventListener("mousemove", mouseMovement, false);
       movement = false;
-      pauseMenu();
+      onPause?.();
     }
   }
 

@@ -1,4 +1,4 @@
-import {cameraFront, cameraPos, cameraUp, light } from "./utils/lib/constants.js";
+import {cameraFront, cameraPos, cameraUp } from "./utils/lib/constants.js";
 import { vec3 } from "./dist/esm/index.js";
 import { movement, keyPressed } from "./utils/lib/checkInput.js";
 
@@ -44,30 +44,6 @@ export function ProcessMovement(deltaTime) {
     vec3.cross(rightVector, cameraFront, cameraUp);
     vec3.normalize(rightVector, rightVector);
     vec3.scaleAndAdd(cameraPos, cameraPos, rightVector, -speed);
-  }
-
-  if (keyPressed.has("arrowup")) {
-    light.z -= 1 * deltaTime;
-  }
-
-  if (keyPressed.has("arrowdown")) {
-    light.z += 1 * deltaTime;
-  }
-
-  if (keyPressed.has("arrowright")) {
-    light.x+= 1 * deltaTime;
-  }
-
-  if (keyPressed.has("arrowleft")) {
-    light.x-= 1 *deltaTime;
-  }
-
-  if (keyPressed.has("arrowup") && keyPressed.has("control")) {
-    light.y+= 1 * deltaTime;
-  }
-
-  if (keyPressed.has("arrowdown") && keyPressed.has("control")) {
-    light.y -= 1 *deltaTime;
   }
 
   cameraPos[1] = 0.0

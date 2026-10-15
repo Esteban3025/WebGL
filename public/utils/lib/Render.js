@@ -28,7 +28,6 @@ export class Render {
     this.lastFrame = now;
 
     this.world.update(deltaTime);
-    this.clear();
     this.world.draw();
     this.updateUi(deltaTime);
     this.fpsFrames++;
@@ -43,13 +42,6 @@ export class Render {
     }
 
     requestAnimationFrame((nextFrame) => this.frame(nextFrame));
-  }
-
-  clear() {
-    const gl = this.gl;
-    gl.clearColor(0.02, 0.02, 0.025, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
   }
 
   updateUi(deltaTime) {

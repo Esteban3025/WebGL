@@ -16,6 +16,16 @@ export class LightManager {
     this.markerBuffer = null;
     this.markerUniforms = null;
     this.programUniforms = new WeakMap();
+    this.version = 0;
+    this.packed = {
+      version: -1,
+      count: 0,
+      types: new Int32Array(MAX_LIGHTS),
+      positions: new Float32Array(MAX_LIGHTS * 3),
+      directions: new Float32Array(MAX_LIGHTS * 3),
+      colors: new Float32Array(MAX_LIGHTS * 3),
+      intensities: new Float32Array(MAX_LIGHTS),
+    };
 
     this.addLight("ambient", {
       type: "ambient",
@@ -31,7 +41,7 @@ export class LightManager {
     });
     this.addLight("sun", {
       type: "directional",
-      direction: [-0.4, -1, -0.3],
+      direction: [0, 100, 0],
       color: [0.65, 0.75, 1],
       intensity: 0.6,
     });
@@ -49,6 +59,7 @@ export class LightManager {
       intensity: light.intensity ?? 1,
       enabled: light.enabled ?? true,
     });
+    this.version++;
   }
 
   removeLight(id) {
@@ -56,6 +67,7 @@ export class LightManager {
       throw new Error(`La luz "${id}" es requerida por la escena`);
     }
     this.lights.delete(id);
+    this.version++;
   }
 
   setLightEnabled(id, enabled) {
@@ -64,22 +76,38 @@ export class LightManager {
       throw new Error(`No existe la luz "${id}"`);
     }
     light.enabled = enabled;
+    this.version++;
   }
 
   update(deltaTime, keys) {
     const ligthMovementSpeed = deltaTime * 20;
     const justPressed = (key) => keys.has(key) && !this.previousKeys.has(key);
-    if (justPressed("l")) this.enabled = !this.enabled;
+    if (justPressed("l")) {
+      this.enabled = !this.enabled;
+      this.version++;
+    }
     if (justPressed("h")) this.markerVisible = !this.markerVisible;
 
     const mainLight = this.lights.get("main");
     if (mainLight) {
+      const x = this.position.x;
+      const y = this.position.y;
+      const z = this.position.z;
       if (keys.has("arrowright")) this.position.x += ligthMovementSpeed;
       if (keys.has("arrowleft")) this.position.x -= ligthMovementSpeed;
       if (keys.has("arrowup") && !keys.has("control")) this.position.z -= ligthMovementSpeed;
       if (keys.has("arrowdown") && !keys.has("control")) this.position.z += ligthMovementSpeed;
       if (keys.has("arrowup") && keys.has("control")) this.position.y += ligthMovementSpeed;
       if (keys.has("arrowdown") && keys.has("control")) this.position.y -= ligthMovementSpeed;
+      if (keys.has("0")) {
+        this.position.x = 0;
+        this.position.y = 0;
+        this.position.z = 0;
+        this.version++;
+      }
+      if (x !== this.position.x || y !== this.position.y || z !== this.position.z) {
+        this.version++;
+      }
       mainLight.position[0] = this.position.x;
       mainLight.position[1] = this.position.y;
       mainLight.position[2] = this.position.z;
@@ -89,22 +117,7 @@ export class LightManager {
   }
 
   applyToProgram(gl, program) {
-    const lights = this.enabled
-      ? [...this.lights.values()].filter((light) => light.enabled).slice(0, MAX_LIGHTS)
-      : [];
-    const positions = [];
-    const directions = [];
-    const colors = [];
-    const types = [];
-    const intensities = [];
-
-    for (const light of lights) {
-      types.push(light.type === "ambient" ? 0 : light.type === "directional" ? 1 : 2);
-      positions.push(...light.position);
-      directions.push(...light.direction);
-      colors.push(...light.color);
-      intensities.push(light.intensity);
-    }
+    const packed = this.pack();
 
     let uniforms = this.programUniforms.get(program);
     if (!uniforms) {
@@ -119,12 +132,31 @@ export class LightManager {
       this.programUniforms.set(program, uniforms);
     }
 
-    gl.uniform1i(uniforms.count, lights.length);
-    gl.uniform1iv(uniforms.types, types);
-    gl.uniform3fv(uniforms.positions, positions);
-    gl.uniform3fv(uniforms.directions, directions);
-    gl.uniform3fv(uniforms.colors, colors);
-    gl.uniform1fv(uniforms.intensities, intensities);
+    gl.uniform1i(uniforms.count, packed.count);
+    gl.uniform1iv(uniforms.types, packed.types);
+    gl.uniform3fv(uniforms.positions, packed.positions);
+    gl.uniform3fv(uniforms.directions, packed.directions);
+    gl.uniform3fv(uniforms.colors, packed.colors);
+    gl.uniform1fv(uniforms.intensities, packed.intensities);
+  }
+
+  // Empaqueta las luces en arrays reutilizables; solo se recalcula si cambió algo.
+  pack() {
+    if (this.packed.version === this.version) return this.packed;
+    const packed = this.packed;
+    const lights = this.enabled
+      ? [...this.lights.values()].filter((light) => light.enabled).slice(0, MAX_LIGHTS)
+      : [];
+    packed.count = lights.length;
+    lights.forEach((light, i) => {
+      packed.types[i] = light.type === "ambient" ? 0 : light.type === "directional" ? 1 : 2;
+      packed.positions.set(light.position, i * 3);
+      packed.directions.set(light.direction, i * 3);
+      packed.colors.set(light.color, i * 3);
+      packed.intensities[i] = light.intensity;
+    });
+    packed.version = this.version;
+    return packed;
   }
 
   async initializeMarker() {

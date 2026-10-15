@@ -1,403 +1,226 @@
-import { m4 } from "../Math.js";
-import {
-  cameraPos,
-  cameraFront,
-  currentDirection,
-  cameraUp,
-} from "./constants.js";
-import { mat4, vec3 } from "../../dist/esm/index.js";
+import { mat4 } from "../../dist/esm/index.js";
+import { setupVertexArray } from "./VertexFormat.js";
+import { TEXTURE_UNITS } from "./ProgramManager.js";
 
+const SLOTS = Object.keys(TEXTURE_UNITS);
+const DEG_TO_RAD = Math.PI / 180;
+const scratchPoint = new Float32Array(3);
+// Object outlining: desactivado por defecto. `width` está en unidades de mundo.
+export function normalizeOutline(outline = {}) {
+  return {
+    enabled: false,
+    width: 1.5,
+    ...outline,
+    color: [...(outline.color || [1, 0.6, 0.1])],
+  };
+}
+
+export function buildModelMatrix(out, model) {
+  mat4.identity(out);
+  mat4.translate(out, out, model.translate);
+  mat4.scale(out, out, model.scale);
+  mat4.rotateX(out, out, model.deg * DEG_TO_RAD);
+  mat4.rotateZ(out, out, model.degZ * DEG_TO_RAD);
+  return out;
+}
+
+/**
+ * Objeto dibujable: un VBO/IBO y un VAO propios, con uno o más rangos
+ * (uno por material). Cada rango equivale a un único draw call.
+ *
+ * ranges[i] = { start, count, center, radius, material }
+ * material = { color: [r,g,b], textures: { diffuse, specular, normal, emissive } }
+ */
 export class CreateObject {
-  /**
-   * @param {WebGLRenderingContext} gl - El contexto de WebGL.
-   * @param {Array|Float32Array} vertices - Coordenadas de los vértices (ej: [x,y, z...]).
-   * @param {Number} vertexCount - Número total de vértices a renderizar.
-   */
-
-  constructor(gl, vertices, vertexCount, model, normals = null, texcoords = null) {
+  constructor(gl, { programInfo, vertexData, indices, ranges, model, mode, cullFace, textureKeys, blend, outline }) {
     this.gl = gl;
-    this.vertexCount = vertexCount;
-    this.vertices = vertices;
-    this.normals = normals;
-    this.texcoords = texcoords;
+    this.programInfo = programInfo;
     this.model = model;
-    this.mode = gl.TRIANGLES;
-    this.materialColor = [1, 1, 1];
-
-    this.texture = null;
-    this.textures = new Map();
-    this.lighting = null;
-    this.program = null;
-    this.uniformLocations = {};
-    this._setupObj();
-  }
-
-  _setupObj() {
-    const gl = this.gl;
-    let vertices = new Float32Array(this.vertices);
-    let normals = new Float32Array(this.normals);
-    const coordenadasTextura = [];
-
-    if (this.texcoords) {
-      coordenadasTextura.push(...this.texcoords);
-    } else {
-      for (let i = 0; i < this.vertices.length; i += 3) {
-        const x = this.vertices[i];
-        const y = this.vertices[i + 1];
-
-        const u = (x + 1) / 2;
-        const v = (y + 1) / 2;
-
-        coordenadasTextura.push(u, v);
-      }
-    }
-
-    const v = new Float32Array(coordenadasTextura);
-
-    this.objectBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.objectBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-    this.textureBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.textureBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW);
-
-    this.objectNormalBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.objectNormalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
-
-  }
-
-  _createTexture(source, slot = "diffuse") {
-    const gl = this.gl;
-    const texture = gl.createTexture();
-    this.textures.set(slot, texture);
-    if (slot === "diffuse") this.texture = texture;
-
-    // gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      1,
-      1,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      new Uint8Array([0, 0, 255, 255]),
-    );
-
-    const upload = (image) => {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        image
-      );
-
-      if (this._isPowerOf2(image.width) && this._isPowerOf2(image.height)) {
-        gl.generateMipmap(gl.TEXTURE_2D);
-      } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      }
-    };
-
-    if (typeof source === "string") {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.addEventListener("load", () => {
-          upload(image);
-          resolve();
-        });
-        image.addEventListener("error", () => {
-          reject(new Error(`No se pudo cargar la textura: ${image.src}`));
-        });
-        image.src = source.startsWith("/") || source.startsWith("data:")
-          ? source
-          : `/res/${source}`;
-      });
-    } else if (source) {
-      if (source.complete === false) {
-        return new Promise((resolve, reject) => {
-          source.addEventListener("load", () => {
-            upload(source);
-            resolve();
-          }, { once: true });
-          source.addEventListener("error", () => {
-            reject(new Error("No se pudo cargar una textura de material"));
-          }, { once: true });
-        });
-      }
-      upload(source);
-      return Promise.resolve();
-    }
-    return Promise.reject(new Error(`Textura inválida para "${slot}"`));
-  }
-
-  _createSolidTexture(color, slot = "diffuse") {
-    const gl = this.gl;
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      1,
-      1,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      new Uint8Array(color),
-    );
-    this.textures.set(slot, texture);
-    if (slot === "diffuse") this.texture = texture;
-    return Promise.resolve();
-  }
-
-  _isPowerOf2(value) {
-    return value > 0 && (value & (value - 1)) === 0;
-  }
-
-  _compileShader(type, source) {
-    const gl = this.gl;
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-
-    const compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-    if (!compiled) {
-      // Something went wrong during compilation; get the error
-      const lastError = gl.getShaderInfoLog(shader);
-      console.error(`${type} : Error compiling shader: ${lastError}`);
-      gl.deleteShader(shader);
-      return null;
-    }
-    // console.log(gl.getShaderInfoLog(shader));
-    return shader;
-  }
-
-  _setProgram(vs_source, fs_source) {
-    const gl = this.gl;
-
-    const vertexShader = this._compileShader(gl.VERTEX_SHADER, vs_source);
-    const fragmentShader = this._compileShader(gl.FRAGMENT_SHADER, fs_source);
-
-    const program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    const success = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (!success) {
-      console.error(success);
-    }
-
-    this.program = program;
-    gl.useProgram(program);
-    // console.log(vs_source);
-    // console.log(fs_source);
-
-    const posLoc = gl.getAttribLocation(program, "a_position");
-    this.attributeLocations = {
-      position: posLoc,
-      texcoord: gl.getAttribLocation(program, "a_texcoord"),
-      normal: gl.getAttribLocation(program, "a_normal"),
-    };
-    if (posLoc >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.objectBuffer);
-      gl.enableVertexAttribArray(posLoc);
-      gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-    }
-
-    const texLoc = this.attributeLocations.texcoord;
-    if (texLoc >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.textureBuffer);
-      gl.enableVertexAttribArray(texLoc);
-      gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
-    }
-
-    const normalLoc = this.attributeLocations.normal;
-    if (normalLoc >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.objectNormalBuffer);
-      gl.enableVertexAttribArray(normalLoc);
-      gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
-    }
-
-    this.uniformLocations = {
-      model: gl.getUniformLocation(program, "model"),
-      view: gl.getUniformLocation(program, "view"),
-      projection: gl.getUniformLocation(program, "projection"),
-      color: gl.getUniformLocation(program, "u_color"),
-      texture: gl.getUniformLocation(program, "u_texture"),
-      diffuseMap: gl.getUniformLocation(program, "u_diffuseMap"),
-      specularMap: gl.getUniformLocation(program, "u_specularMap"),
-      normalMap: gl.getUniformLocation(program, "u_normalMap"),
-      emissiveMap: gl.getUniformLocation(program, "u_emissiveMap"),
-      hasSpecularMap: gl.getUniformLocation(program, "u_hasSpecularMap"),
-      hasNormalMap: gl.getUniformLocation(program, "u_hasNormalMap"),
-      hasEmissiveMap: gl.getUniformLocation(program, "u_hasEmissiveMap"),
-      materialColor: gl.getUniformLocation(program, "u_materialColor"),
-    };
-
-    console.log(gl.getProgramInfoLog(program));
-  }
-
-  _updateUniforms() {
-    const gl = this.gl;
-    let model = this.model;
-
-    if (this.uniformLocations.color) {
-      gl.uniform4fv(this.uniformLocations.color, [
-        model.color.r,
-        model.color.g,
-        model.color.b,
-        1,
-      ]);
-    }
-    if (this.uniformLocations.materialColor) {
-      gl.uniform3fv(this.uniformLocations.materialColor, this.materialColor);
-    }
-
-    let view = mat4.create();
-
-    vec3.add(currentDirection, cameraPos, cameraFront);
-    view = mat4.lookAt(view, cameraPos, currentDirection, cameraUp);
-    gl.uniformMatrix4fv(this.uniformLocations.view, false, view);
-
-    let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-
-    let projection = mat4.create();
-    projection = mat4.perspective(
-      projection,
-      m4.degToRad(45),
-      aspect,
-      1,
-      10000,
-    );
-    gl.uniformMatrix4fv(this.uniformLocations.projection, false, projection);
-
-    let objectModel = mat4.create();
-    objectModel = mat4.translate(objectModel, objectModel, model.translate);
-    objectModel = mat4.scale(objectModel, objectModel, model.scale);
-    objectModel = mat4.rotateX(
-      objectModel,
-      objectModel,
-      m4.degToRad(model.deg),
-    );
-    objectModel = mat4.rotateZ(
-      objectModel,
-      objectModel,
-      m4.degToRad(model.degZ),
-    );
-
-    gl.uniformMatrix4fv(this.uniformLocations.model, false, objectModel);
-    if (this.lighting) {
-      this.lighting.applyToProgram(gl, this.program);
-    }
-  }
-
-  setLighting(lighting) {
-    this.lighting = lighting;
-  }
-
-  setMaterialColor(color) {
-    this.materialColor = color;
-  }
-
-  setMode(mode) {
     this.mode = mode;
+    this.cullFace = cullFace;
+    this.textureKeys = textureKeys;
+    this.blend = blend ?? false;
+    this.outline = normalizeOutline(outline);
+    this.ranges = ranges.map((range) => ({
+      ...range,
+      material: this._prepareMaterial(range.material),
+    }));
+    this._computeBounds();
+
+    this.vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
+
+    this.indexBuffer = null;
+    this.indexType = 0;
+    this.indexBytes = 0;
+    if (indices) {
+      this.indexType = indices instanceof Uint16Array ? gl.UNSIGNED_SHORT : gl.UNSIGNED_INT;
+      this.indexBytes = indices.BYTES_PER_ELEMENT;
+      this.indexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    }
+    this.vao = setupVertexArray(gl, this.vertexBuffer, this.indexBuffer);
+
+    this.modelMatrix = mat4.create();
+    this.version = 0;
+    this.updateModel();
   }
 
-  draw(mode = this.mode) {
-    const gl = this.gl;
-    gl.useProgram(this.program);
-    if (this.uniformLocations.texture !== null && this.texture !== null) {
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, this.texture);
-      gl.uniform1i(this.uniformLocations.texture, 0);
-    }
-    const diffuse = this.textures.get("diffuse");
-    const specular = this.textures.get("specular");
-    const normalMap = this.textures.get("normal");
-    const emissive = this.textures.get("emissive");
-    if (this.uniformLocations.diffuseMap !== null && diffuse) {
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, diffuse);
-      gl.uniform1i(this.uniformLocations.diffuseMap, 0);
-    }
-    if (this.uniformLocations.specularMap !== null) {
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, specular || diffuse);
-      gl.uniform1i(this.uniformLocations.specularMap, 1);
-      gl.uniform1i(this.uniformLocations.hasSpecularMap, specular ? 1 : 0);
-    }
-    if (this.uniformLocations.normalMap !== null) {
-      gl.activeTexture(gl.TEXTURE2);
-      gl.bindTexture(gl.TEXTURE_2D, normalMap || diffuse);
-      gl.uniform1i(this.uniformLocations.normalMap, 2);
-      gl.uniform1i(this.uniformLocations.hasNormalMap, normalMap ? 1 : 0);
-    }
-    if (this.uniformLocations.emissiveMap !== null) {
-      gl.activeTexture(gl.TEXTURE3);
-      gl.bindTexture(gl.TEXTURE_2D, emissive || diffuse);
-      gl.uniform1i(this.uniformLocations.emissiveMap, 3);
-      gl.uniform1i(this.uniformLocations.hasEmissiveMap, emissive ? 1 : 0);
-    }
-
-    const { position, texcoord, normal } = this.attributeLocations;
-    if (position >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.objectBuffer);
-      gl.enableVertexAttribArray(position);
-      gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
-    }
-    if (texcoord >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.textureBuffer);
-      gl.enableVertexAttribArray(texcoord);
-      gl.vertexAttribPointer(texcoord, 2, gl.FLOAT, false, 0, 0);
-    }
-    if (normal >= 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.objectNormalBuffer);
-      gl.enableVertexAttribArray(normal);
-      gl.vertexAttribPointer(normal, 3, gl.FLOAT, false, 0, 0);
-    }
-
-    this._updateUniforms();
-    gl.drawArrays(mode, 0, this.vertexCount);
+  _prepareMaterial(material) {
+    // Máscara con los mapas opcionales presentes para actualizar los flags
+    // del shader solo cuando cambian.
+    const { textures } = material;
+    const flags =
+      (textures.specular ? 1 : 0) |
+      (textures.normal ? 2 : 0) |
+      (textures.emissive ? 4 : 0);
+    return { ...material, flags };
   }
 
-  // Limpieza de memoria en la GPU cuando el objeto ya no se use
+  // Esfera que envuelve todos los rangos y el tramo contiguo que cubren.
+  _computeBounds() {
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    let start = Infinity;
+    let end = 0;
+    for (const range of this.ranges) {
+      for (let axis = 0; axis < 3; axis++) {
+        min[axis] = Math.min(min[axis], range.center[axis] - range.radius);
+        max[axis] = Math.max(max[axis], range.center[axis] + range.radius);
+      }
+      start = Math.min(start, range.start);
+      end = Math.max(end, range.start + range.count);
+    }
+    this.center = min.map((value, axis) => (value + max[axis]) / 2);
+    this.radius = Math.max(
+      ...this.ranges.map((range) => Math.hypot(
+        range.center[0] - this.center[0],
+        range.center[1] - this.center[1],
+        range.center[2] - this.center[2],
+      ) + range.radius),
+    );
+    this.drawStart = start;
+    this.drawCount = end - start;
+    this.worldCenter = new Float32Array(3);
+  }
+
+  // Recalcula la matriz del modelo; llamar si `model` cambia.
+  updateModel() {
+    buildModelMatrix(this.modelMatrix, this.model);
+    const [sx, sy, sz] = this.model.scale;
+    this.maxScale = Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz));
+    this._transformPoint(this.center, this.worldCenter);
+    this.version++;
+  }
+
+  setOutline(outline) {
+    this.outline = normalizeOutline({ ...this.outline, ...outline });
+  }
+
+  _transformPoint([x, y, z], out) {
+    const m = this.modelMatrix;
+    out[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
+    out[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+    out[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+    return out;
+  }
+
+  isVisible(frustum) {
+    const [x, y, z] = this.worldCenter;
+    return frustum.intersectsSphere(x, y, z, this.radius * this.maxScale);
+  }
+
+  _uploadModel(info) {
+    if (info.owner === this && info.ownerVersion === this.version) return;
+    const { gl } = this;
+    const { uniforms } = info;
+    gl.uniformMatrix4fv(uniforms.model, false, this.modelMatrix);
+    if (uniforms.color) {
+      const { color } = this.model;
+      gl.uniform4f(uniforms.color, color.r, color.g, color.b, 1);
+    }
+    info.owner = this;
+    info.ownerVersion = this.version;
+  }
+
+  _drawIndices(start, count) {
+    const { gl } = this;
+    if (this.indexBuffer) {
+      gl.drawElements(this.mode, count, this.indexType, start * this.indexBytes);
+    } else {
+      gl.drawArrays(this.mode, start, count);
+    }
+  }
+
+  draw(state) {
+    const info = this.programInfo;
+    const { frustum } = state;
+    if (this.ranges.length > 1 && !this.isVisible(frustum)) return;
+
+    state.bindVertexArray(this.vao);
+    state.setCull(this.cullFace);
+    this._uploadModel(info);
+
+    for (const range of this.ranges) {
+      this._transformPoint(range.center, scratchPoint);
+      if (!frustum.intersectsSphere(scratchPoint[0], scratchPoint[1], scratchPoint[2], range.radius * this.maxScale)) continue;
+
+      this._applyMaterial(state, range.material);
+      this._drawIndices(range.start, range.count);
+    }
+  }
+
+  // Segunda pasada del contorno: la malla extruida a lo largo de sus normales,
+  // en un único draw call (el índice de todos los materiales es contiguo).
+  // Solo tiene efecto con el stencil en modo STENCIL_OUTSIDE.
+  drawOutline(state, info) {
+    if (!this.isVisible(state.frustum)) return;
+    const { gl } = this;
+    state.bindVertexArray(this.vao);
+    state.setCull(this.cullFace);
+    this._uploadModel(info);
+    gl.uniform3fv(info.uniforms.outlineColor, this.outline.color);
+    gl.uniform1f(info.uniforms.outlineWidth, this.outline.width);
+    this._drawIndices(this.drawStart, this.drawCount);
+  }
+
+  _applyMaterial(state, material) {
+    const { gl, programInfo: info } = this;
+    const { uniforms } = info;
+    for (const slot of SLOTS) {
+      const texture = material.textures[slot];
+      if (texture && info.samplers[slot]) state.bindTexture(TEXTURE_UNITS[slot], texture);
+    }
+
+    if (info.flags !== material.flags) {
+      if (uniforms.hasSpecularMap) gl.uniform1i(uniforms.hasSpecularMap, material.flags & 1);
+      if (uniforms.hasNormalMap) gl.uniform1i(uniforms.hasNormalMap, (material.flags >> 1) & 1);
+      if (uniforms.hasEmissiveMap) gl.uniform1i(uniforms.hasEmissiveMap, (material.flags >> 2) & 1);
+      info.flags = material.flags;
+    }
+
+    if (uniforms.materialColor) {
+      const [r, g, b] = material.color;
+      if (info.colorR !== r || info.colorG !== g || info.colorB !== b) {
+        gl.uniform3f(uniforms.materialColor, r, g, b);
+        info.colorR = r;
+        info.colorG = g;
+        info.colorB = b;
+      }
+    }
+  }
+
+  // Limpieza de memoria en la GPU cuando el objeto ya no se use.
   delete() {
-    const gl = this.gl;
-    if (this.objectBuffer) {
-      gl.deleteBuffer(this.objectBuffer);
-      this.objectBuffer = null;
-    }
-    if (this.textureBuffer) {
-      gl.deleteBuffer(this.textureBuffer);
-      this.textureBuffer = null;
-    }
-    if (this.objectNormalBuffer) {
-      gl.deleteBuffer(this.objectNormalBuffer);
-      this.objectNormalBuffer = null;
-    }
-    for (const texture of this.textures.values()) gl.deleteTexture(texture);
-    this.textures.clear();
-    this.texture = null;
-    if (this.program) {
-      gl.deleteProgram(this.program);
-      this.program = null;
-    }
+    const { gl } = this;
+    if (this.vao) gl.deleteVertexArray(this.vao);
+    if (this.vertexBuffer) gl.deleteBuffer(this.vertexBuffer);
+    if (this.indexBuffer) gl.deleteBuffer(this.indexBuffer);
+    this.vao = this.vertexBuffer = this.indexBuffer = null;
+    if (this.programInfo.owner === this) this.programInfo.owner = null;
   }
 }
 

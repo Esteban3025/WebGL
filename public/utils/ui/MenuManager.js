@@ -1,3 +1,40 @@
+const HELP_SECTIONS = [
+  {
+    title: "Movimiento",
+    controls: [
+      { keys: ["W", "S"], text: "Avanzar / retroceder hacia donde mirás" },
+      { keys: ["A", "D"], text: "Moverte a la izquierda / derecha" },
+      { keys: ["Shift"], text: "Mantener para moverte al doble de velocidad" },
+      { keys: ["Mouse"], text: "Mirar alrededor (se captura al hacer clic o al jugar)" },
+      { keys: ["Esc"], text: "Pausar y liberar el mouse" },
+    ],
+  },
+  {
+    title: "Luces",
+    controls: [
+      { keys: ["L"], text: "Encender / apagar toda la iluminación" },
+      { keys: ["H"], text: "Mostrar / ocultar el cuadrado amarillo que marca la luz principal" },
+      { keys: ["←", "→"], text: "Mover la luz principal a izquierda / derecha" },
+      { keys: ["↑", "↓"], text: "Mover la luz principal hacia adelante / atrás" },
+      { keys: ["Ctrl", "↑ ↓"], text: "Subir / bajar la luz principal" },
+    ],
+  },
+  {
+    title: "Objetos",
+    controls: [
+      { keys: ["P"], text: "Activar / desactivar el contorno del astronauta y del cubo de roca" },
+    ],
+  },
+  {
+    title: "Pantalla",
+    controls: [
+      { keys: ["K"], text: "Activar / desactivar el efecto sharpen (realce de nitidez)" },
+      { keys: ["FPS"], text: "Cuadros por segundo, arriba a la izquierda" },
+      { keys: ["Panel"], text: "Posición de la cámara, DeltaTime y posición de la luz, arriba a la derecha" },
+    ],
+  },
+];
+
 export class MenuManager {
   constructor(canvas) {
     this.canvas = canvas;
@@ -32,15 +69,61 @@ export class MenuManager {
   }
 
   showMain(onStart) {
-    this.showMenu(this.mainContainer, "GREED", [
+    this.showMenu(this.mainContainer, "Nderakore!", [
       {
         label: "JUGAR",
         action: () => {
-          this.hideMain();
+          this.hideMain();this.showMenu
           onStart();
         },
       },
+      {
+        label: "CONTROLES",
+        action: () => this.showHelp(() => this.showMain(onStart)),
+      },
     ]);
+  }
+
+  showHelp(onBack) {
+    const container = this.mainContainer;
+    container.replaceChildren();
+    const panel = document.createElement("div");
+    panel.className = "menu-panel help-panel";
+    const title = document.createElement("h1");
+    title.textContent = "CÓMO JUGAR";
+    panel.append(title);
+
+    for (const { title: sectionTitle, controls } of HELP_SECTIONS) {
+      const section = document.createElement("section");
+      section.className = "help-section";
+      const heading = document.createElement("h2");
+      heading.textContent = sectionTitle;
+      section.append(heading);
+      for (const { keys, text } of controls) {
+        const row = document.createElement("div");
+        row.className = "help-row";
+        const keyCell = document.createElement("span");
+        keyCell.className = "help-keys";
+        for (const key of keys) {
+          const cap = document.createElement("kbd");
+          cap.textContent = key;
+          keyCell.append(cap);
+        }
+        const description = document.createElement("span");
+        description.textContent = text;
+        row.append(keyCell, description);
+        section.append(row);
+      }
+      panel.append(section);
+    }
+
+    const back = document.createElement("button");
+    back.type = "button";
+    back.textContent = "VOLVER";
+    back.addEventListener("click", onBack);
+    panel.append(back);
+    container.append(panel);
+    container.hidden = false;
   }
 
   hideMain() {

@@ -4,6 +4,7 @@ export let cameraPos = vec3.fromValues(0, 0, 313);
 export let cameraFront = vec3.fromValues(0, 0, -1); // Esto es un vector de direccion de hacia donde mira la camara
 export let cameraUp = vec3.fromValues(0, 1, 0);
 export let currentDirection = vec3.create();
+export let objectOutline = { enabled: false };
 export let light = {
   x: 120,
   y: 0.7,

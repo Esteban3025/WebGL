@@ -5,7 +5,8 @@ import { MenuManager } from "./utils/ui/MenuManager.js";
 
 async function main() {
   const canvas = document.querySelector("#c");
-  const gl = canvas.getContext("webgl2");
+  // MSAA, depth y stencil viven en el framebuffer del postprocesador, no en el canvas.
+  const gl = canvas.getContext("webgl2", { antialias: false, depth: false, stencil: false });
   if (!gl) {
     throw new Error("WebGL2 no está disponible en este navegador");
   }
